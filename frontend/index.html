@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="description" content="Confy: The elegant Conference Management System for authors, reviewers, and organizers to collaborate seamlessly.">
   <title>Confy - Conference Management System</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     body {
@@ -241,7 +243,7 @@
 
   <nav class="navbar">
     <div class="nav-logo">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M4 4H20V20H4V4Z" stroke="#60a5fa" stroke-width="2" fill="none"/>
         <path d="M8 8H16V10H8V8ZM8 12H14V14H8V12ZM8 16H12V18H8V16Z" fill="#60a5fa"/>
       </svg>
@@ -258,7 +260,7 @@
       <!-- User Login -->
       <a href="login.html" class="login-card">
         <div class="card-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
@@ -267,14 +269,14 @@
         <p>Submit papers, track reviews, and manage your conference schedule.</p>
         <div class="card-btn">
           Sign In Portal
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </div>
       </a>
 
       <!-- Admin Login -->
       <a href="admin-login.html" class="login-card admin-card">
         <div class="card-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
@@ -283,11 +285,15 @@
         <p>Manage users, oversee paper assignments, and configure the event.</p>
         <div class="card-btn">
           Admin Login
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </div>
       </a>
     </div>
   </main>
+
+  <footer style="text-align: center; padding: 24px; color: #64748b; font-size: 14px; width: 100%;">
+    &copy; 2026 Confy. All rights reserved.
+  </footer>
 
   <script>
     // Auto-redirect if already logged in
@@ -296,7 +302,7 @@
       // Just visually show they are logged out or redirect to dashboard
       // We'll let them choose to click to go to dashboard.
       const cards = document.querySelectorAll('.card-btn');
-      cards.forEach(card => card.innerHTML = 'Go to Dashboard <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>');
+      cards.forEach(card => card.innerHTML = 'Go to Dashboard <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>');
       
       const loginLinks = document.querySelectorAll('.login-card');
       loginLinks.forEach(link => link.href = 'pages/dashboard.html');
