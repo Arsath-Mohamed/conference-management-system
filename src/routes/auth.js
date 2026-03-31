@@ -10,6 +10,10 @@ router.post("/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
     
+    // Security Patch: Prevent privilege escalation during registration
+    const allowedRoles = ["author", "reviewer"];
+    const finalRole = allowedRoles.includes(role) ? role : "author";
+    
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
@@ -21,7 +25,7 @@ router.post("/register", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || "author"
+      role: finalRole
     });
     
     await user.save();

@@ -645,7 +645,7 @@ body {
 
 /* ================= LOGIN PAGE ================= */
 .login-page {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #09090b; /* zinc-950 */
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -659,10 +659,35 @@ body {
 }
 
 .login-card {
-  background: var(--bg-primary);
+  background: #18181b; /* zinc-900 */
   border-radius: var(--radius-xl);
+  border: 1px solid #27272a; /* zinc-800 */
   padding: 40px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  color: #e4e4e7; /* zinc-200 */
+}
+
+/* Back Link Styling */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #a1a1aa;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 32px;
+  transition: all 0.2s ease;
+  background: #27272a;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #3f3f46;
+}
+
+.back-link:hover {
+  color: #ffffff;
+  background: #3f3f46;
+  transform: translateX(-4px);
 }
 
 .login-header {
@@ -687,12 +712,12 @@ body {
 .logo-large h1 {
   font-size: 28px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
 .login-subtitle {
   font-size: 14px;
-  color: var(--text-muted);
+  color: #a1a1aa;
 }
 
 .login-btn {
@@ -719,6 +744,10 @@ body {
   position: relative;
 }
 
+.password-wrapper {
+  position: relative;
+}
+
 .password-toggle {
   position: absolute;
   right: 12px;
@@ -730,6 +759,32 @@ body {
   color: var(--text-muted);
   cursor: pointer;
   padding: 4px 8px;
+}
+
+/* Dark mode form overrides for login card */
+.login-card .form-label {
+  color: #d4d4d8;
+}
+
+.login-card .form-input,
+.login-card .form-select {
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  color: #ffffff;
+}
+
+.login-card .form-input:focus,
+.login-card .form-select:focus {
+  border-color: #a1a1aa;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+}
+
+.login-card .form-input::placeholder {
+  color: #52525b;
+}
+
+.login-card .password-toggle {
+  color: #a1a1aa;
 }
 
 /* ================= RESPONSIVE ================= */
