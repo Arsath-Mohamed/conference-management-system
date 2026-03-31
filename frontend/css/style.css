@@ -224,16 +224,37 @@ body {
 
 .logout-btn {
   background: none;
-  border: 1px solid var(--border-light);
-  padding: var(--spacing-xs) var(--spacing-md);
+  border: 1px solid var(--border-medium);
+  padding: 8px 14px;
   border-radius: var(--radius-md);
   font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sidebar-muted);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logout-btn .logout-icon {
+  transition: transform 0.2s ease;
 }
 
 .logout-btn:hover {
-  background: var(--bg-tertiary);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.logout-btn:hover .logout-icon {
+  transform: translateX(2px);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
 }
 
 /* ================= PAGE CONTAINER ================= */
