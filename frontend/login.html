@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - Confy</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-large">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4H20V20H4V4Z" stroke="currentColor" stroke-width="2" fill="none"/>
+            <path d="M8 8H16V10H8V8ZM8 12H14V14H8V12ZM8 16H12V18H8V16Z" fill="currentColor"/>
+          </svg>
+          <h1>Confy</h1>
+        </div>
+        <p class="login-subtitle">Conference Management System</p>
+      </div>
+      
+      <form onsubmit="event.preventDefault(); login()">
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input type="email" id="email" class="form-input" placeholder="you@example.com" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+            <button type="button" class="password-toggle" onclick="togglePassword()">Show</button>
+          </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary login-btn">Sign in</button>
+      </form>
+      
+      <div class="login-footer">
+        <p>Don't have an account? <a href="register.html">Create account</a></p>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/auth.js"></script>
+  <script>
+    function togglePassword() {
+      const pass = document.getElementById("password");
+      const btn = event.target;
+      if (pass.type === "password") {
+        pass.type = "text";
+        btn.textContent = "Hide";
+      } else {
+        pass.type = "password";
+        btn.textContent = "Show";
+      }
+    }
+  </script>
+</body>
+</html>

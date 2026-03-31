@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
+  <title>Confy - Conference Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', 'Inter', sans-serif;
+      background: #0f172a;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* Animated abstract background */
+    .bg-animation {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: -1;
+      overflow: hidden;
+      background: radial-gradient(circle at top right, #3b82f633, transparent 40%),
+                  radial-gradient(circle at bottom left, #8b5cf633, transparent 40%);
+    }
+
+    .blob {
+      position: absolute;
+      filter: blur(80px);
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: float 20s infinite ease-in-out alternate;
+    }
+
+    .blob-1 {
+      width: 400px; height: 400px;
+      background: #3b82f6;
+      top: -10%; right: -5%;
+    }
+
+    .blob-2 {
+      width: 500px; height: 500px;
+      background: #8b5cf6;
+      bottom: -20%; left: -10%;
+      animation-delay: -5s;
+    }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-50px, 50px) scale(1.1); }
+    }
+
+    /* Navbar */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 48px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff, #93c5fd);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Hero Section */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 100px);
+      text-align: center;
+      padding: 0 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 14px;
+      font-weight: 500;
+      color: #93c5fd;
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .hero h1 {
+      font-size: 72px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      letter-spacing: -2px;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 20px;
+      color: #94a3b8;
+      max-width: 600px;
+      margin-bottom: 48px;
+      line-height: 1.6;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Glassmorphism Cards Container */
+    .login-options {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 40px;
+      width: 320px;
+      text-align: left;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      text-decoration: none;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-card:hover {
+      transform: translateY(-10px);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .login-card.admin-card::before {
+      background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    }
+
+    .login-card:hover::before {
+      opacity: 1;
+    }
+
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: rgba(59, 130, 246, 0.1);
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    
+    .admin-card .card-icon {
+      background: rgba(139, 92, 246, 0.1);
+      color: #a78bfa;
+    }
+
+    .login-card h3 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .login-card p {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-bottom: 32px;
+      line-height: 1.5;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .card-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: #60a5fa;
+      font-size: 16px;
+      transition: gap 0.3s;
+    }
+
+    .admin-card .card-btn {
+      color: #a78bfa;
+    }
+
+    .login-card:hover .card-btn {
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 48px; }
+      .navbar { padding: 20px; }
+      .login-card { width: 100%; max-width: 320px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-animation">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <nav class="navbar">
+    <div class="nav-logo">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 4H20V20H4V4Z" stroke="#60a5fa" stroke-width="2" fill="none"/>
+        <path d="M8 8H16V10H8V8ZM8 12H14V14H8V12ZM8 16H12V18H8V16Z" fill="#60a5fa"/>
+      </svg>
+      Confy
+    </div>
+  </nav>
+
+  <main class="hero">
+    <div class="hero-badge">✨ Next-Gen Conference Platform</div>
+    <h1>Manage your events<br>with <span>elegance</span>.</h1>
+    <p>The all-in-one conference management system designed for authors, reviewers, and organizers to collaborate seamlessly.</p>
+
+    <div class="login-options">
+      <!-- User Login -->
+      <a href="login.html" class="login-card">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <h3>Authors & Reviewers</h3>
+        <p>Submit papers, track reviews, and manage your conference schedule.</p>
+        <div class="card-btn">
+          Sign In Portal
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </a>
+
+      <!-- Admin Login -->
+      <a href="admin-login.html" class="login-card admin-card">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <h3>Admin & Chairs</h3>
+        <p>Manage users, oversee paper assignments, and configure the event.</p>
+        <div class="card-btn">
+          Admin Login
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </a>
+    </div>
+  </main>
+
+  <script>
+    // Auto-redirect if already logged in
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Just visually show they are logged out or redirect to dashboard
+      // We'll let them choose to click to go to dashboard.
+      const cards = document.querySelectorAll('.card-btn');
+      cards.forEach(card => card.innerHTML = 'Go to Dashboard <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>');
+      
+      const loginLinks = document.querySelectorAll('.login-card');
+      loginLinks.forEach(link => link.href = 'pages/dashboard.html');
+=======
+  <title>Confy</title>
+</head>
+<body>
+  <script>
+    const token = localStorage.getItem("token");
+    if (token) {
+      window.location.href = "pages/dashboard.html";
+    } else {
+      window.location.href = "login.html";
+>>>>>>> 0562c8dbc27a98db1fa8371929b9678743c6d4e1
+    }
+  </script>
+</body>
+</html>

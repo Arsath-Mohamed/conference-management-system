@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Details - Confy</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <div id="sidebar-container"></div>
+    
+    <main class="main-content">
+      <div id="header-container"></div>
+      
+      <div class="page-container">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Paper Details</h3>
+          </div>
+          <div class="card-body">
+            <div id="paper-detail"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <script src="../js/config.js"></script>
+  <script src="../js/layout.js"></script>
+  <script>
+    // Paper detail specific code (cannot use apiCall because we need papers array)
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      window.location.href = "../login.html";
+    }
+    
+    function getPaperId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('id');
+    }
+    
+    async function loadPaperDetail() {
+      const paperId = getPaperId();
+      if (!paperId) {
+        window.location.href = "papers.html";
+        return;
+      }
+      
+      try {
+        const papers = await apiCall("/papers");
+        const paper = papers.find(p => p._id === paperId);
+        
+        if (!paper) {
+          document.getElementById("paper-detail").innerHTML = '<div class="empty-state">Paper not found</div>';
+          return;
+        }
+        
+        displayPaperDetail(paper);
+      } catch (err) {
+        console.error(err);
+        window.Layout.showToast("Failed to load paper details", "error");
+      }
+    }
+    
+    function displayPaperDetail(paper) {
+      const container = document.getElementById("paper-detail");
+      let statusClass = "badge-pending";
+      if (paper.status === "accepted") statusClass = "badge-accepted";
+      if (paper.status === "rejected") statusClass = "badge-rejected";
+      
+      let reviewsHtml = '<h4>Reviews</h4>';
+      if (paper.reviews && paper.reviews.length > 0) {
+        paper.reviews.forEach(review => {
+          reviewsHtml += `
+            <div class="review-complete" style="margin-top: 16px;">
+              <div class="review-rating">Rating: ${"★".repeat(review.rating)} (${review.rating}/5)</div>
+              <div class="review-decision">Decision: ${review.decision}</div>
+              <div class="review-comment">Comment: ${escapeHtml(review.comment)}</div>
+            </div>
+          `;
+        });
+      } else {
+        reviewsHtml += '<p>No reviews yet</p>';
+      }
+      
+      container.innerHTML = `
+        <div class="paper-detail">
+          <h2>${escapeHtml(paper.title)}</h2>
+          <div class="paper-meta">
+            <span class="badge ${statusClass}">${paper.status}</span>
+            <span>Submitted: ${new Date(paper.createdAt).toLocaleDateString()}</span>
+          </div>
+          <h4>Abstract</h4>
+          <p>${escapeHtml(paper.abstract)}</p>
+          ${paper.file ? `<a href="/uploads/${paper.file}" target="_blank" class="btn btn-primary">Download PDF</a>` : ""}
+          ${paper.schedule ? `<h4>Schedule</h4><p>${paper.schedule.date} at ${paper.schedule.time} in ${paper.schedule.room}</p>` : ""}
+          ${reviewsHtml}
+        </div>
+      `;
+    }
+    
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === "&") return "&amp;";
+        if (m === "<") return "&lt;";
+        if (m === ">") return "&gt;";
+        return m;
+      });
+    }
+    
+    window.onload = loadPaperDetail;
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users - Confy</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header"><a href="dashboard.html" class="logo"><span class="logo-text">Confy</span></a></div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">Dashboard</a>
+        <a href="papers.html" class="nav-item">Papers</a>
+        <a href="reviews.html" class="nav-item">Reviews</a>
+        <a href="schedule.html" class="nav-item">Schedule</a>
+        <a href="users.html" class="nav-item active">Users</a>
+      </nav>
+    </aside>
+    <main class="main-content">
+      <header class="app-header">
+        <h1 class="page-title">Users</h1>
+        <div class="user-menu">
+          <div class="user-info"><div class="user-name" id="user-name">Loading...</div><div class="user-role" id="user-role">Loading...</div></div>
+          <div class="user-avatar"><span id="user-initial">JD</span></div>
+          <button class="logout-btn" onclick="logout()">Sign out</button>
+        </div>
+      </header>
+      <div class="page-container">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">System Users</h3>
+            <button class="btn btn-primary btn-sm" onclick="showAddUserModal()">Add User</button>
+          </div>
+          <div class="card-body"><div id="users-list"></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="add-user-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close" onclick="closeAddUserModal()">&times;</span>
+      <h3>Add New User</h3>
+      <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="new-user-name" class="form-input" placeholder="John Doe"></div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" id="new-user-email" class="form-input" placeholder="john@example.com"></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" id="new-user-password" class="form-input" placeholder="Create a password"></div>
+      <div class="form-group"><label class="form-label">Role</label><select id="new-user-role" class="form-select"><option value="author">Author</option><option value="reviewer">Reviewer</option><option value="chair">Chair</option><option value="admin">Admin</option></select></div>
+      <button class="btn btn-primary" onclick="addUser()">Create User</button>
+    </div>
+  </div>
+
+  <script>
+    function logout() { localStorage.clear(); window.location.href = "../login.html"; }
+  </script>
+  <script src="../js/config.js"></script>
+  <script src="../js/layout.js"></script>
+  <script src="../js/users.js"></script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Papers - Confy</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="dashboard.html" class="logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4H20V20H4V4Z" stroke="currentColor" stroke-width="2" fill="none"/>
+            <path d="M8 8H16V10H8V8ZM8 12H14V14H8V12ZM8 16H12V18H8V16Z" fill="currentColor"/>
+          </svg>
+          <span class="logo-text">Confy</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">Dashboard</a>
+          <a href="papers.html" class="nav-item active">Papers</a>
+          <a href="reviews.html" class="nav-item">Reviews</a>
+          <a href="schedule.html" class="nav-item">Schedule</a>
+          <a href="users.html" class="nav-item">Users</a>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="app-header">
+        <h1 class="page-title">Papers</h1>
+        <div class="user-menu">
+          <div class="user-info">
+            <div class="user-name" id="user-name">Loading...</div>
+            <div class="user-role" id="user-role">Loading...</div>
+          </div>
+          <div class="user-avatar">
+            <span id="user-initial">JD</span>
+          </div>
+          <button class="logout-btn" onclick="logout()">Sign out</button>
+        </div>
+      </header>
+
+      <div class="page-container">
+        <!-- Submit section (shown for authors) -->
+        <div id="submit-section" class="card" style="display: none;">
+          <div class="card-header"><h3 class="card-title">Submit New Paper</h3></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Paper Title</label>
+              <input type="text" id="title" class="form-input" placeholder="Enter paper title">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Abstract</label>
+              <textarea id="abstract" class="form-textarea" rows="5" placeholder="Enter abstract (minimum 50 characters)"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">PDF File</label>
+              <input type="file" id="file" class="form-input" accept=".pdf">
+              <div class="form-help">Max 5MB, PDF only.</div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button id="submit-btn" class="btn btn-primary" onclick="submitPaper()">Submit Paper</button>
+          </div>
+        </div>
+
+        <!-- Bulk actions (shown for admin/chair) -->
+        <div id="bulk-actions" style="display: none;">
+          <button class="btn btn-danger btn-sm" onclick="deleteAllPapers()">Delete All</button>
+          <button class="btn btn-warning btn-sm" onclick="deleteAcceptedPapers()">Delete Accepted</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRejectedPapers()">Delete Rejected</button>
+          <button class="btn btn-success btn-sm" onclick="exportPapersCSV()">Export CSV</button>
+        </div>
+
+        <!-- Papers list -->
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">All Papers</h3></div>
+          <div class="card-body"><div id="papers-list"></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function logout() { localStorage.clear(); window.location.href = "../login.html"; }
+  </script>
+  <script src="../js/config.js"></script>
+  <script src="../js/layout.js"></script>
+  <script src="../js/papers.js"></script>
+</body>
+</html>
