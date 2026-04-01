@@ -100,6 +100,27 @@ router.put("/:id/schedule", isChair, async (req, res) => {
   res.json(paper);
 });
 
+// ✅ SUBMIT REVIEW (FOR REVIEWERS)
+router.put("/:id/review", async (req, res) => {
+  const { reviewComment, reviewRating, reviewDecision } = req.body;
+
+  const paper = await Paper.findById(req.params.id);
+  if (!paper) return res.status(404).json({ message: "Paper not found" });
+
+  // Security check: must be the assigned reviewer OR an admin
+  if (req.user.id !== paper.reviewerId && req.user.role !== "admin" && req.user.role !== "chair") {
+    return res.status(403).json({ message: "You are not authorized to review this paper." });
+  }
+
+  paper.reviewComment = reviewComment;
+  paper.reviewRating = reviewRating;
+  paper.reviewDecision = reviewDecision;
+  paper.reviewedAt = new Date();
+
+  await paper.save();
+  res.json(paper);
+});
+
 // ✅ STATUS (NEW: Accept/Reject)
 router.put("/:id/status", isChair, async (req, res) => {
   const { status } = req.body;

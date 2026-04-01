@@ -71,19 +71,55 @@
       if (paper.status === "accepted") statusClass = "badge-accepted";
       if (paper.status === "rejected") statusClass = "badge-rejected";
       
-      let reviewsHtml = '<h4>Reviews</h4>';
-      if (paper.reviews && paper.reviews.length > 0) {
-        paper.reviews.forEach(review => {
-          reviewsHtml += `
-            <div class="review-complete" style="margin-top: 16px;">
-              <div class="review-rating">Rating: ${"★".repeat(review.rating)} (${review.rating}/5)</div>
-              <div class="review-decision">Decision: ${review.decision}</div>
-              <div class="review-comment">Comment: ${escapeHtml(review.comment)}</div>
-            </div>
-          `;
-        });
+      let reviewsHtml = '<h4 style="margin-top: 32px; border-top: 1px solid var(--border-light); padding-top: 24px;">Review Verdict</h4>';
+      if (paper.reviewComment) {
+        reviewsHtml += `
+          <div class="review-complete" style="margin-top: 16px; background: var(--bg-secondary); padding: 16px; border-radius: 8px;">
+            <div class="review-rating" style="color: var(--primary); font-weight: 600;">Rating: ${"★".repeat(paper.reviewRating)} (${paper.reviewRating}/5)</div>
+            <div class="review-decision" style="margin: 8px 0;">Decision: <strong style="text-transform: capitalize;">${paper.reviewDecision}</strong></div>
+            <div class="review-comment" style="color: var(--text-secondary); font-style: italic;">"${escapeHtml(paper.reviewComment)}"</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 12px;">Reviewed on: ${new Date(paper.reviewedAt).toLocaleDateString()}</div>
+          </div>
+        `;
       } else {
-        reviewsHtml += '<p>No reviews yet</p>';
+        reviewsHtml += '<p style="color: var(--text-muted);">No review submitted yet.</p>';
+      }
+
+      // Add Reviewer Form (IF current user is the assigned reviewer)
+      let reviewerActions = '';
+      if (user.role === 'reviewer' && user.id === paper.reviewerId) {
+        reviewerActions = `
+          <div class="reviewer-actions-section" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-light);">
+            <h4 style="margin-bottom: 24px; color: var(--primary);">Submit Your Review</h4>
+            <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Review Rating (1-5 Stars)</label>
+                  <select id="review-rating" class="form-input">
+                    <option value="5">5 Stars - Excellent</option>
+                    <option value="4">4 Stars - Good</option>
+                    <option value="3" selected>3 Stars - Average</option>
+                    <option value="2">2 Stars - Poor</option>
+                    <option value="1">1 Star - Very Poor</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Recommendation</label>
+                  <select id="review-decision" class="form-input">
+                    <option value="accept">Accept Submission</option>
+                    <option value="revisions">Request Revisions</option>
+                    <option value="reject">Reject Submission</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Comments for the Authors</label>
+                  <textarea id="review-comment" class="form-input" style="min-height: 120px;" placeholder="Provide detailed feedback...">${paper.reviewComment || ''}</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="submitReview()" id="review-submit-btn">Submit Official Review</button>
+              </div>
+            </div>
+          </div>
+        `;
       }
 
       // Add Admin/Chair Actions
@@ -171,9 +207,41 @@
           ` : ""}
           
           ${reviewsHtml}
+          ${reviewerActions}
           ${adminActions}
         </div>
       `;
+    }
+
+    async function submitReview() {
+      const paperId = getPaperId();
+      const reviewRating = document.getElementById('review-rating').value;
+      const reviewDecision = document.getElementById('review-decision').value;
+      const reviewComment = document.getElementById('review-comment').value;
+
+      if (!reviewComment) {
+        window.Layout.showToast("Please provide review comments", "error");
+        return;
+      }
+
+      const btn = document.getElementById('review-submit-btn');
+      try {
+        btn.disabled = true;
+        btn.textContent = "Submitting...";
+
+        await apiCall(`/papers/${paperId}/review`, {
+          method: 'PUT',
+          body: JSON.stringify({ reviewComment, reviewRating, reviewDecision })
+        });
+
+        window.Layout.showToast("Review submitted successfully", "success");
+        loadPaperDetail();
+      } catch (err) {
+        window.Layout.showToast(err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Submit Official Review";
+      }
     }
 
     async function loadReviewers() {
