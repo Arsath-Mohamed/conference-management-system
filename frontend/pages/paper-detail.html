@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paper Details - Confy</title>
+  <title>Paper Details - Conference Management System</title>
   <link rel="stylesheet" href="../css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -31,7 +31,7 @@
   <script src="../js/layout.js"></script>
   <script>
     // Paper detail specific code (cannot use apiCall because we need papers array)
-    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
     
     if (!token) {
       window.location.href = "../login.html";
@@ -85,21 +85,103 @@
       } else {
         reviewsHtml += '<p>No reviews yet</p>';
       }
+
+      // Add Admin/Chair Actions
+      let adminActions = '';
+      if (user.role === 'admin' || user.role === 'chair') {
+        adminActions = `
+          <div class="admin-actions-section" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-light);">
+            <h4 style="margin-bottom: 16px;">Administrator Actions</h4>
+            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+              <button class="btn btn-success" onclick="updateStatus('accepted')">Accept Paper</button>
+              <button class="btn btn-danger" onclick="updateStatus('rejected')">Reject Paper</button>
+            </div>
+
+            <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
+              <div class="card-header"><h4 class="card-title">Set Presentation Schedule</h4></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Date</label>
+                  <input type="date" id="sched-date" class="form-input" value="${paper.schedule?.date || ''}">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div class="form-group">
+                    <label class="form-label">Time</label>
+                    <input type="time" id="sched-time" class="form-input" value="${paper.schedule?.time || ''}">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Room</label>
+                    <input type="text" id="sched-room" class="form-input" placeholder="e.g. Hall A" value="${paper.schedule?.room || ''}">
+                  </div>
+                </div>
+                <button class="btn btn-primary" onclick="updateSchedule()">Save Schedule</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
       
       container.innerHTML = `
         <div class="paper-detail">
-          <h2>${escapeHtml(paper.title)}</h2>
-          <div class="paper-meta">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h2>${escapeHtml(paper.title)}</h2>
             <span class="badge ${statusClass}">${paper.status}</span>
+          </div>
+          <div class="paper-meta" style="margin-bottom: 24px;">
             <span>Submitted: ${new Date(paper.createdAt).toLocaleDateString()}</span>
           </div>
           <h4>Abstract</h4>
-          <p>${escapeHtml(paper.abstract)}</p>
-          ${paper.file ? `<a href="/uploads/${paper.file}" target="_blank" class="btn btn-primary">Download PDF</a>` : ""}
-          ${paper.schedule ? `<h4>Schedule</h4><p>${paper.schedule.date} at ${paper.schedule.time} in ${paper.schedule.room}</p>` : ""}
+          <p style="margin-bottom: 24px; color: var(--text-secondary);">${escapeHtml(paper.abstract)}</p>
+          ${paper.file ? `<a href="/uploads/${paper.file}" target="_blank" class="btn btn-outline btn-sm" style="margin-bottom: 24px;">View PDF Document</a>` : ""}
+          
+          ${paper.schedule && paper.schedule.date ? `
+            <div class="schedule-info" style="background: rgba(59, 130, 246, 0.1); padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid var(--primary);">
+              <h4 style="margin-top:0; color: var(--primary);">Presentation Scheduled</h4>
+              <p style="margin:0;">${paper.schedule.date} at ${paper.schedule.time} — <strong>${paper.schedule.room}</strong></p>
+            </div>
+          ` : ""}
+          
           ${reviewsHtml}
+          ${adminActions}
         </div>
       `;
+    }
+
+    async function updateStatus(status) {
+      const paperId = getPaperId();
+      try {
+        await apiCall(`/papers/${paperId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status })
+        });
+        window.Layout.showToast(`Paper ${status} successfully`, "success");
+        loadPaperDetail();
+      } catch (err) {
+        window.Layout.showToast(err.message, "error");
+      }
+    }
+
+    async function updateSchedule() {
+      const paperId = getPaperId();
+      const date = document.getElementById('sched-date').value;
+      const time = document.getElementById('sched-time').value;
+      const room = document.getElementById('sched-room').value;
+
+      if (!date || !time || !room) {
+        window.Layout.showToast("Please fill in all schedule fields", "error");
+        return;
+      }
+
+      try {
+        await apiCall(`/papers/${paperId}/schedule`, {
+          method: 'PUT',
+          body: JSON.stringify({ date, time, room })
+        });
+        window.Layout.showToast("Schedule updated successfully", "success");
+        loadPaperDetail();
+      } catch (err) {
+        window.Layout.showToast(err.message, "error");
+      }
     }
     
     function escapeHtml(str) {

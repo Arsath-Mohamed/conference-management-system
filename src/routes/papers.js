@@ -100,6 +100,25 @@ router.put("/:id/schedule", isChair, async (req, res) => {
   res.json(paper);
 });
 
+// ✅ STATUS (NEW: Accept/Reject)
+router.put("/:id/status", isChair, async (req, res) => {
+  const { status } = req.body;
+
+  if (!["accepted", "rejected", "pending"].includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+
+  const paper = await Paper.findByIdAndUpdate(
+    req.params.id,
+    { status },
+    { new: true }
+  );
+
+  if (!paper) return res.status(404).json({ message: "Paper not found" });
+
+  res.json(paper);
+});
+
 
 // DELETE
 router.delete("/:id", isChair, async (req, res) => {
