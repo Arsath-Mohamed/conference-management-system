@@ -260,17 +260,32 @@
   </footer>
 
   <script>
-    // Auto-redirect if already logged in
+    // Smarter redirect logic
     const token = localStorage.getItem("token");
-    if (token) {
-      // Just visually show they are logged out or redirect to dashboard
-      // We'll let them choose to click to go to dashboard.
-      const cards = document.querySelectorAll('.card-btn');
-      cards.forEach(card => card.innerHTML = 'Go to Dashboard <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>');
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    
+    if (token && user.role) {
+      const isAdminGroup = (user.role === 'admin' || user.role === 'chair');
       
-      const loginLinks = document.querySelectorAll('.login-card');
-      loginLinks.forEach(link => link.href = 'pages/dashboard.html');
-
+      // Target the cards specifically
+      const userCard = document.querySelector('.login-card:not(.admin-card)');
+      const adminCard = document.querySelector('.login-card.admin-card');
+      
+      if (isAdminGroup) {
+        // Person is an Admin/Chair
+        adminCard.href = 'pages/dashboard.html';
+        adminCard.querySelector('.card-btn').innerHTML = 'Go to Dashboard <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+        
+        // For the other group, let them sign in as someone else
+        userCard.querySelector('.card-btn').innerHTML = 'Sign in as Author <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+      } else {
+        // Person is an Author/Reviewer
+        userCard.href = 'pages/dashboard.html';
+        userCard.querySelector('.card-btn').innerHTML = 'Go to Dashboard <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+        
+        // For the admin group, let them switch
+        adminCard.querySelector('.card-btn').innerHTML = 'Executive Access <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+      }
     }
   </script>
 </body>
