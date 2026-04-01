@@ -91,10 +91,34 @@
       if (user.role === 'admin' || user.role === 'chair') {
         adminActions = `
           <div class="admin-actions-section" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-light);">
-            <h4 style="margin-bottom: 16px;">Administrator Actions</h4>
-            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-              <button class="btn btn-success" onclick="updateStatus('accepted')">Accept Paper</button>
-              <button class="btn btn-danger" onclick="updateStatus('rejected')">Reject Paper</button>
+            <h4 style="margin-bottom: 24px; color: var(--primary);">Administrator Control Panel</h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+              <!-- Assignment Card -->
+              <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
+                <div class="card-header"><h4 class="card-title">Reviewer Assignment</h4></div>
+                <div class="card-body">
+                  <div class="form-group">
+                    <label class="form-label">Current Reviewer: <span id="current-reviewer" style="color: var(--primary);">${paper.reviewerName || 'None'}</span></label>
+                    <select id="reviewer-select" class="form-input">
+                      <option value="">-- Choose Reviewer --</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="assignReviewer()" id="assign-btn">Assign Selected</button>
+                </div>
+              </div>
+
+              <!-- Status Card -->
+              <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
+                <div class="card-header"><h4 class="card-title">Verdict & Decision</h4></div>
+                <div class="card-body">
+                  <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">Set the final status of this paper after the review process.</p>
+                  <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-success" onclick="updateStatus('accepted')">Accept</button>
+                    <button class="btn btn-danger" onclick="updateStatus('rejected')">Reject</button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
@@ -119,25 +143,30 @@
             </div>
           </div>
         `;
+        
+        // After inserting HTML, we need to load reviewers
+        setTimeout(loadReviewers, 100);
       }
       
       container.innerHTML = `
         <div class="paper-detail">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <h2>${escapeHtml(paper.title)}</h2>
+            <h1 style="margin-top:0;">${escapeHtml(paper.title)}</h1>
             <span class="badge ${statusClass}">${paper.status}</span>
           </div>
-          <div class="paper-meta" style="margin-bottom: 24px;">
+          <div class="paper-meta" style="margin-bottom: 24px; font-size: 14px; color: var(--text-secondary);">
+            <span>By: <strong>${escapeHtml(paper.authorName)}</strong></span>
+            <span style="margin: 0 12px;">|</span>
             <span>Submitted: ${new Date(paper.createdAt).toLocaleDateString()}</span>
           </div>
           <h4>Abstract</h4>
-          <p style="margin-bottom: 24px; color: var(--text-secondary);">${escapeHtml(paper.abstract)}</p>
+          <p style="margin-bottom: 24px; color: var(--text-secondary); line-height: 1.6;">${escapeHtml(paper.abstract)}</p>
           ${paper.file ? `<a href="${UPLOAD_BASE_URL}/${paper.file}" target="_blank" class="btn btn-outline btn-sm" style="margin-bottom: 24px;">View PDF Document</a>` : ""}
           
           ${paper.schedule && paper.schedule.date ? `
-            <div class="schedule-info" style="background: rgba(59, 130, 246, 0.1); padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid var(--primary);">
+            <div class="schedule-info" style="background: rgba(59, 130, 246, 0.1); padding: 16px; border-radius: 8px; margin-bottom: 32px; border-left: 4px solid var(--primary);">
               <h4 style="margin-top:0; color: var(--primary);">Presentation Scheduled</h4>
-              <p style="margin:0;">${paper.schedule.date} at ${paper.schedule.time} — <strong>${paper.schedule.room}</strong></p>
+              <p style="margin:0; font-weight: 500;">${paper.schedule.date} at ${paper.schedule.time} — <strong>${paper.schedule.room}</strong></p>
             </div>
           ` : ""}
           
@@ -145,6 +174,51 @@
           ${adminActions}
         </div>
       `;
+    }
+
+    async function loadReviewers() {
+      const select = document.getElementById('reviewer-select');
+      if (!select) return;
+      
+      try {
+        const reviewers = await apiCall("/papers/reviewers");
+        reviewers.forEach(rev => {
+          const option = document.createElement('option');
+          option.value = rev._id;
+          option.textContent = `${rev.name} (${rev.email})`;
+          select.appendChild(option);
+        });
+      } catch (err) {
+        console.error("Failed to load reviewers:", err);
+      }
+    }
+
+    async function assignReviewer() {
+      const paperId = getPaperId();
+      const reviewerId = document.getElementById('reviewer-select').value;
+      if (!reviewerId) {
+        window.Layout.showToast("Please select a reviewer", "error");
+        return;
+      }
+      
+      const btn = document.getElementById('assign-btn');
+      try {
+        btn.disabled = true;
+        btn.textContent = "Assigning...";
+        
+        await apiCall(`/papers/${paperId}/assign`, {
+          method: 'PUT',
+          body: JSON.stringify({ reviewerId })
+        });
+        
+        window.Layout.showToast("Reviewer assigned successfully", "success");
+        loadPaperDetail();
+      } catch (err) {
+        window.Layout.showToast(err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Assign Selected";
+      }
     }
 
     async function updateStatus(status) {
