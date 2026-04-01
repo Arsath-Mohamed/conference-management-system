@@ -78,8 +78,13 @@ function displayPapers(papers) {
         <td>${escapeHtml(p.authorName || 'Unknown')}</td>
         <td><span class="badge ${statusClass}">${p.status}</span></td>
         <td>${new Date(p.createdAt).toLocaleDateString()}</td>
-        <td>
+        <td style="display: flex; gap: 8px;">
           <a href="paper-detail.html?id=${p._id}" class="btn btn-sm btn-primary">View</a>
+          ${(user.role === 'admin' || user.role === 'chair') ? `
+            <button class="btn btn-sm btn-danger" onclick="deletePaper('${p._id}')" title="Delete Paper">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          ` : ''}
         </td>
       </tr>
     `;
@@ -87,6 +92,18 @@ function displayPapers(papers) {
 
   html += `</tbody></table></div>`;
   container.innerHTML = html;
+}
+
+async function deletePaper(id) {
+  if (!confirm("Are you sure you want to delete this paper? This action cannot be undone.")) return;
+
+  try {
+    await apiCall(`/papers/${id}`, { method: "DELETE" });
+    window.Layout.showToast("Paper deleted successfully", "success");
+    loadPapers(); // Refresh the list
+  } catch (error) {
+    window.Layout.showToast(error.message, "error");
+  }
 }
 
 async function submitPaper() {
