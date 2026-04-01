@@ -42,13 +42,24 @@ router.post("/register", async (req, res) => {
 // Login
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, roleGroup } = req.body;
     
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
     
+    // Role restriction
+    if (roleGroup === "admin") {
+      if (user.role !== "admin" && user.role !== "chair") {
+        return res.status(403).json({ message: "This login is for administrators only." });
+      }
+    } else if (roleGroup === "user") {
+      if (user.role === "admin" || user.role === "chair") {
+        return res.status(403).json({ message: "Administrators must use the executive login portal." });
+      }
+    }
+
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       return res.status(401).json({ message: "Invalid credentials" });

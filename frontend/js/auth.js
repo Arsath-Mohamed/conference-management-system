@@ -6,7 +6,7 @@ async function login() {
     const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, roleGroup: "user" })
     });
 
     const data = await response.json();
@@ -35,7 +35,7 @@ async function adminLogin() {
     const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, roleGroup: "admin" })
     });
 
     const data = await response.json();
