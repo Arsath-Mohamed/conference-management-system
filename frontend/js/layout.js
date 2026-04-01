@@ -133,5 +133,12 @@
     }
   });
   
+  function logout() {
+    localStorage.clear();
+    const isInsidePages = window.location.pathname.includes("/pages/");
+    window.location.href = isInsidePages ? "../login.html" : "login.html";
+  }
+  
   window.Layout = { showToast };
+  window.logout = logout;
 })();

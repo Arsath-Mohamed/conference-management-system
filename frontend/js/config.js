@@ -4,6 +4,10 @@ const API_BASE_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:5000/api' 
   : '/api';
 
+const UPLOAD_BASE_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:5000/uploads'
+  : '/uploads';
+
 // Helper function
 async function apiCall(endpoint, options = {}) {
   const token = localStorage.getItem("token");

@@ -30,7 +30,7 @@
   <script src="../js/config.js"></script>
   <script src="../js/layout.js"></script>
   <script>
-    // Paper detail specific code (cannot use apiCall because we need papers array)
+    const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     
     if (!token) {
@@ -132,7 +132,7 @@
           </div>
           <h4>Abstract</h4>
           <p style="margin-bottom: 24px; color: var(--text-secondary);">${escapeHtml(paper.abstract)}</p>
-          ${paper.file ? `<a href="/uploads/${paper.file}" target="_blank" class="btn btn-outline btn-sm" style="margin-bottom: 24px;">View PDF Document</a>` : ""}
+          ${paper.file ? `<a href="${UPLOAD_BASE_URL}/${paper.file}" target="_blank" class="btn btn-outline btn-sm" style="margin-bottom: 24px;">View PDF Document</a>` : ""}
           
           ${paper.schedule && paper.schedule.date ? `
             <div class="schedule-info" style="background: rgba(59, 130, 246, 0.1); padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid var(--primary);">
