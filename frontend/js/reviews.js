@@ -41,98 +41,48 @@ function displayReviews(papers) {
   let html = '';
   
   papers.forEach(paper => {
-    const isReviewed = paper.reviewDecision !== null;
+    const isReviewed = !!paper.reviewComment;
     const statusClass = paper.status === "pending" ? "badge-pending" : 
                         paper.status === "accepted" ? "badge-accepted" : "badge-rejected";
     
     html += `
-      <div class="card" id="paper-${paper._id}">
-        <div class="card-header">
-          <h3 class="card-title">${escapeHtml(paper.title)}</h3>
-          <span class="badge ${statusClass}">${paper.status}</span>
+      <div class="card" id="paper-${paper._id}" style="margin-bottom: 20px;">
+        <div class="card-header" style="padding-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <h3 class="card-title" style="margin-bottom: 4px;">${escapeHtml(paper.title)}</h3>
+            <span class="badge ${statusClass}">${paper.status}</span>
+          </div>
         </div>
         <div class="card-body">
-          <p><strong>Author:</strong> ${escapeHtml(paper.authorName)}</p>
-          <p><strong>Abstract:</strong> ${escapeHtml(paper.abstract)}</p>
-          ${paper.file ? `<a href="/uploads/${paper.file}" target="_blank" class="btn btn-secondary btn-sm">Download PDF</a>` : ""}
+          <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">Submitted by: <strong>${escapeHtml(paper.authorName)}</strong></div>
+          <p style="margin-bottom: 20px; line-height: 1.5; color: var(--text-secondary);">${escapeHtml(paper.abstract.substring(0, 200))}...</p>
           
-          ${isReviewed ? `
-            <div class="review-complete">
-              <div class="review-header">
-                <span class="badge badge-success">Review Completed</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 16px;">
+            ${isReviewed ? `
+              <div>
+                <span class="badge badge-success" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);">
+                  ✓ Review Submitted
+                </span>
+                <span style="font-size: 14px; color: var(--text-secondary); margin-left: 12px;">Recommendation: <strong>${paper.reviewDecision}</strong></span>
               </div>
-              <div class="review-details">
-                <div><strong>Decision:</strong> ${paper.reviewDecision === "accept" ? "Accepted" : "Rejected"}</div>
-                <div><strong>Rating:</strong> ${"★".repeat(paper.reviewRating)} (${paper.reviewRating}/5)</div>
-                <div><strong>Comment:</strong> ${escapeHtml(paper.reviewComment)}</div>
+            ` : `
+              <div>
+                <span class="badge badge-pending" style="background: rgba(59, 130, 246, 0.1); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.2);">
+                  ! Awaiting Your Review
+                </span>
               </div>
-            </div>
-          ` : `
-            <div class="review-form">
-              <h4 class="review-title">Submit Your Review</h4>
-              
-              <div class="form-group">
-                <label class="form-label">Decision *</label>
-                <select id="decision-${paper._id}" class="form-select">
-                  <option value="accept">Accept</option>
-                  <option value="reject">Reject</option>
-                </select>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">Rating *</label>
-                <select id="rating-${paper._id}" class="form-select">
-                  <option value="1">1 - Poor</option>
-                  <option value="2">2 - Fair</option>
-                  <option value="3">3 - Good</option>
-                  <option value="4">4 - Very Good</option>
-                  <option value="5">5 - Excellent</option>
-                </select>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">Comments *</label>
-                <textarea id="comment-${paper._id}" class="form-textarea" rows="4" placeholder="Provide detailed feedback..."></textarea>
-              </div>
-              
-              <button class="btn btn-primary" onclick="window.submitReview('${paper._id}')" id="review-btn-${paper._id}">Submit Review</button>
-            </div>
-          `}
+            `}
+            
+            <a href="paper-detail.html?id=${paper._id}" class="btn btn-primary btn-sm">
+              ${isReviewed ? "View My Review" : "Open Paper & Start Review"}
+            </a>
+          </div>
         </div>
       </div>
     `;
   });
   
   container.innerHTML = html;
-}
-
-async function submitReview(paperId) {
-  const decision = document.getElementById(`decision-${paperId}`).value;
-  const rating = document.getElementById(`rating-${paperId}`).value;
-  const comment = document.getElementById(`comment-${paperId}`).value.trim();
-  const btn = document.getElementById(`review-btn-${paperId}`);
-  
-  if (!comment) {
-    window.Layout.showToast("Please provide review comments", "error");
-    return;
-  }
-  
-  btn.disabled = true;
-  btn.innerText = "Submitting...";
-  
-  try {
-    await apiCall(`/papers/${paperId}/review`, {
-      method: "PUT",
-      body: JSON.stringify({ decision, rating, comment })
-    });
-    
-    window.Layout.showToast("Review submitted successfully!", "success");
-    setTimeout(() => loadReviews(), 1000);
-  } catch (error) {
-    window.Layout.showToast(error.message, "error");
-    btn.disabled = false;
-    btn.innerText = "Submit Review";
-  }
 }
 
 function escapeHtml(str) {
@@ -147,6 +97,5 @@ function escapeHtml(str) {
 
 // Make functions globally available
 window.loadReviews = loadReviews;
-window.submitReview = submitReview;
 
 document.addEventListener("DOMContentLoaded", loadReviews);
