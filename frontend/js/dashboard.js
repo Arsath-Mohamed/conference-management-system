@@ -98,10 +98,11 @@ async function saveConferenceSettings() {
   };
   
   try {
-    currentSettings = await apiCall("/settings", {
+    const updatedSettings = await apiCall("/settings", {
       method: "PUT",
       body: JSON.stringify(payload)
     });
+    currentSettings = updatedSettings;
     window.Layout.showToast(newState ? "Conference Announced successfully!" : "Conference Closed!", "success");
     updateSettingsUI();
   } catch (error) {
@@ -111,7 +112,6 @@ async function saveConferenceSettings() {
   } finally {
     btn.disabled = false;
   }
-}
 }
 
 function displayRecentPapers(papers) {

@@ -51,13 +51,37 @@
           <div class="card-header">
             <h3 class="card-title">Conference Settings</h3>
           </div>
-          <div class="card-body" style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h4 style="margin: 0 0 8px 0;">Conference Status</h4>
-              <p class="text-muted" style="margin: 0; font-size: 14px;">Toggle whether the conference is announced and open for authors to submit papers.</p>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Conference Name</label>
+              <input type="text" id="conf-name" class="form-input" placeholder="e.g. ICML 2026">
             </div>
-            <div>
-              <button id="toggle-conference-btn" class="btn" onclick="window.toggleConferenceStatus()">Loading...</button>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea id="conf-desc" class="form-textarea" rows="3" placeholder="Brief conference description"></textarea>
+            </div>
+            <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">Submission Deadline</label>
+                <input type="date" id="conf-deadline" class="form-input">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">Event Date</label>
+                <input type="date" id="conf-eventdate" class="form-input">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input type="text" id="conf-location" class="form-input" placeholder="e.g. San Francisco, CA">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border-light);">
+              <div>
+                <h4 style="margin: 0 0 4px 0;">Conference Status</h4>
+                <p class="text-muted" style="margin: 0;">Toggle whether the conference is "Announced" (Live).</p>
+              </div>
+              <div>
+                <button id="toggle-conference-btn" class="btn" onclick="window.saveConferenceSettings()">Save & Announce</button>
+              </div>
             </div>
           </div>
         </div>
