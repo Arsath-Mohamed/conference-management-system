@@ -5,8 +5,10 @@ const paperSchema = new mongoose.Schema({
   abstract: { type: String, required: true },
   authorId: { type: String, required: true },
   authorName: { type: String, required: true },
-  reviewerId: { type: String, default: null },
-  reviewerName: { type: String, default: null },
+  
+  // Refactor: Array of assigned reviewers
+  reviewerIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  
   file: { type: String, default: null },
 
   status: {
@@ -15,17 +17,15 @@ const paperSchema = new mongoose.Schema({
     default: "pending"
   },
 
-  // ✅ ADD THIS
   schedule: {
     date: { type: String, default: null },
     time: { type: String, default: null },
     room: { type: String, default: null }
   },
 
-  reviewComment: { type: String, default: null },
-  reviewRating: { type: Number, default: null },
-  reviewDecision: { type: String, default: null },
-  reviewedAt: { type: Date, default: null },
+  // Final decision metadata (optional, can be inferred from reviews)
+  conclusion: { type: String, default: null },
+  decidedAt: { type: Date, default: null },
 
   createdAt: { type: Date, default: Date.now }
 });
