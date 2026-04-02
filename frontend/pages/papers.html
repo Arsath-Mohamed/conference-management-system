@@ -64,6 +64,21 @@
           <button class="btn btn-success btn-sm" onclick="exportPapersCSV()">Export CSV</button>
         </div>
 
+        <!-- Papers list search/filter -->
+        <div style="display: flex; gap: 16px; margin-bottom: 20px; align-items: center;">
+          <div style="flex: 1; position: relative;">
+            <input type="text" id="paper-search" class="form-input" placeholder="Search by title or author name..." oninput="filterPapers()">
+          </div>
+          <div style="width: 200px;">
+            <select id="status-filter" class="form-input" onchange="filterPapers()">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="accepted">Accepted</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+
         <!-- Papers list -->
         <div class="card">
           <div class="card-header"><h3 class="card-title">All Papers</h3></div>

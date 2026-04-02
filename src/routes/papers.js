@@ -3,12 +3,13 @@ const multer = require("multer");
 const Paper = require("../models/Paper");
 const User = require("../models/User");
 const Review = require("../models/Review");
+const Notification = require("../models/Notification");
 const Settings = require("../models/Settings");
 const { auth, isChair } = require("../middleware/auth");
 
 const router = express.Router();
 
-// upload
+// upload configuration
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
@@ -42,7 +43,6 @@ router.get("/", async (req, res) => {
   if (req.user.role === "admin" || req.user.role === "chair") {
     papers = await Paper.find().sort({ createdAt: -1 });
   } else if (req.user.role === "reviewer") {
-    // Corrected for array
     papers = await Paper.find({ reviewerIds: req.user.id }).sort({ createdAt: -1 });
   } else {
     papers = await Paper.find({ authorId: req.user.id }).sort({ createdAt: -1 });
@@ -51,16 +51,15 @@ router.get("/", async (req, res) => {
   res.json(papers);
 });
 
-// GET single paper details including reviews
+// GET single paper details (Anonymized for Authors)
 router.get("/:id", async (req, res) => {
   try {
     const paper = await Paper.findById(req.params.id);
     if (!paper) return res.status(404).json({ message: "Paper not found" });
 
-    // Fetch all reviews for this paper
     const reviews = await Review.find({ paperId: req.params.id }).sort({ createdAt: -1 });
     
-    // Check access
+    // Authorization
     const isAuthor = paper.authorId === req.user.id;
     const isReviewer = paper.reviewerIds.includes(req.user.id);
     const isPowerUser = req.user.role === "admin" || req.user.role === "chair";
@@ -69,16 +68,29 @@ router.get("/:id", async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    res.json({
-      paper,
-      reviews: isPowerUser ? reviews : (isReviewer ? reviews.filter(r => r.reviewerId.toString() === req.user.id) : [])
-    });
+    let resultReviews = [];
+    if (isPowerUser) {
+      resultReviews = reviews; // Chairs see everything
+    } else if (isReviewer) {
+      resultReviews = reviews.filter(r => r.reviewerId.toString() === req.user.id); // Reviewers see their own
+    } else if (isAuthor && paper.status !== "pending") {
+      // Authors see anonymized reviews ONLY after decision
+      resultReviews = reviews.map((r, index) => ({
+        rating: r.rating,
+        comment: r.comment,
+        decision: r.decision,
+        reviewerName: `Reviewer #${index + 1}`, // Anonymize
+        createdAt: r.createdAt
+      }));
+    }
+
+    res.json({ paper, reviews: resultReviews });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// POST new paper
+// POST new paper submission
 router.post("/", upload.single("file"), async (req, res) => {
   try {
     const settings = await Settings.findOne();
@@ -107,26 +119,64 @@ router.post("/", upload.single("file"), async (req, res) => {
   }
 });
 
-// ASSIGN (Append to array)
+// PUT upload final camera-ready version (Author only)
+router.put("/:id/final", upload.single("file"), async (req, res) => {
+  try {
+    const paper = await Paper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ message: "Paper not found" });
+
+    if (paper.authorId !== req.user.id) {
+      return res.status(403).json({ message: "Only the author can upload the final version." });
+    }
+
+    if (paper.status !== "accepted") {
+      return res.status(403).json({ message: "Final version can only be uploaded for accepted papers." });
+    }
+
+    paper.finalFile = req.file?.filename;
+    await paper.save();
+    
+    // Notify Chair/Admin
+    const chairs = await User.find({ role: { $in: ["chair", "admin"] } });
+    for (const chair of chairs) {
+      await Notification.create({
+        userId: chair._id,
+        message: `Final camera-ready version uploaded for: ${paper.title}`,
+        link: `/pages/paper-detail.html?id=${paper._id}`
+      });
+    }
+    
+    res.json({ message: "Final camera-ready version uploaded successfully.", paper });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ASSIGN Expert
 router.put("/:id/assign", isChair, async (req, res) => {
   const { reviewerId } = req.body;
-
   const reviewer = await User.findById(reviewerId);
   if (!reviewer) return res.status(400).json({ message: "Invalid reviewer" });
 
   const paper = await Paper.findById(req.params.id);
   if (!paper) return res.status(404).json({ message: "Paper not found" });
 
-  // Add only if not already assigned
   if (!paper.reviewerIds.includes(reviewerId)) {
     paper.reviewerIds.push(reviewerId);
     await paper.save();
+    
+    // Trigger Notification
+    await Notification.create({
+      userId: reviewerId,
+      message: `You have been assigned to review: ${paper.title}`,
+      link: `/pages/paper-detail.html?id=${paper._id}`
+    });
   }
 
   res.json(paper);
 });
 
-// SCHEDULE
+// SCHEDULE Presentation
 router.put("/:id/schedule", isChair, async (req, res) => {
   const { date, time, room } = req.body;
   const paper = await Paper.findByIdAndUpdate(req.params.id, {
@@ -135,7 +185,7 @@ router.put("/:id/schedule", isChair, async (req, res) => {
   res.json(paper);
 });
 
-// SUBMIT REVIEW (Stored in Review model)
+// SUBMIT REVIEW
 router.put("/:id/review", async (req, res) => {
   try {
     const { reviewComment, reviewRating, reviewDecision } = req.body;
@@ -148,7 +198,6 @@ router.put("/:id/review", async (req, res) => {
       return res.status(403).json({ message: "Not authorized to review this paper." });
     }
 
-    // Upsert review
     let review = await Review.findOne({ paperId, reviewerId: req.user.id });
     if (!review) {
       review = new Review({
@@ -164,20 +213,39 @@ router.put("/:id/review", async (req, res) => {
     review.createdAt = new Date();
 
     await review.save();
+    
+    // Notify Chairs
+    const chairs = await User.find({ role: { $in: ["chair", "admin"] } });
+    for (const chair of chairs) {
+      await Notification.create({
+        userId: chair._id,
+        message: `New review submitted for: ${paper.title}`,
+        link: `/pages/paper-detail.html?id=${paper._id}`
+      });
+    }
+    
     res.json(review);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// STATUS (Final verdict)
+// STATUS (Final Decision)
 router.put("/:id/status", isChair, async (req, res) => {
   const { status } = req.body;
   const paper = await Paper.findByIdAndUpdate(req.params.id, { status }, { new: true });
+  
+  // Notify Author
+  await Notification.create({
+    userId: paper.authorId,
+    message: `Final decision for your paper "${paper.title}": ${status.toUpperCase()}`,
+    link: `/pages/paper-detail.html?id=${paper._id}`
+  });
+  
   res.json(paper);
 });
 
-// DELETE
+// DELETE Paper
 router.delete("/:id", isChair, async (req, res) => {
   await Review.deleteMany({ paperId: req.params.id });
   await Paper.findByIdAndDelete(req.params.id);

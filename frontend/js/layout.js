@@ -55,6 +55,20 @@
     if (themeBtn) {
       themeBtn.addEventListener("click", toggleTheme);
     }
+    
+    // Notification Init
+    const bell = document.getElementById("notification-trigger");
+    const dropdown = document.getElementById("notification-dropdown");
+    if (bell && dropdown) {
+      bell.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle("active");
+      });
+      document.addEventListener("click", () => dropdown.classList.remove("active"));
+    }
+    
+    fetchNotifications();
+    setInterval(fetchNotifications, 60000); // Check every minute
   }
 
   function loadUserInfo() {
@@ -116,6 +130,88 @@
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   }
+
+  function openPdfPreview(url, title = "Document Preview") {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.id = "pdf-preview-modal";
+    
+    overlay.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 style="margin:0;">${title}</h4>
+          <button class="btn btn-outline btn-sm" onclick="Layout.closePdfPreview()">✕ Close</button>
+        </div>
+        <div class="modal-body">
+          <iframe src="${url}" width="100%" height="100%" style="border:none;"></iframe>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    document.body.style.overflow = "hidden";
+    
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closePdfPreview();
+    });
+  }
+
+  function closePdfPreview() {
+    const modal = document.getElementById("pdf-preview-modal");
+    if (modal) modal.remove();
+    document.body.style.overflow = "auto";
+  }
+
+  async function fetchNotifications() {
+    try {
+      const notes = await apiCall("/notifications");
+      const badge = document.getElementById("notification-badge");
+      const list = document.getElementById("notification-list");
+      
+      const unreadCount = notes.filter(n => !n.read).length;
+      if (unreadCount > 0) {
+        badge.style.display = "flex";
+        badge.innerText = unreadCount;
+      } else {
+        badge.style.display = "none";
+      }
+
+      if (!list) return;
+      if (notes.length === 0) {
+        list.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">No notifications yet</div>`;
+        return;
+      }
+
+      list.innerHTML = notes.map(n => `
+        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="Layout.markAsRead('${n._id}', '${n.link}')">
+          <div style="margin-bottom: 4px;">${escapeHtml(n.message)}</div>
+          <div style="font-size: 10px; color: var(--text-muted);">${new Date(n.createdAt).toLocaleString()}</div>
+        </div>
+      `).join('');
+    } catch (err) { console.error("Notes fetch error:", err); }
+  }
+
+  async function markAsRead(id, link) {
+    try {
+      await apiCall(`/notifications/${id}/read`, { method: 'PUT' });
+      if (link) window.location.href = link;
+      else fetchNotifications();
+    } catch (err) {}
+  }
+
+  async function clearNotifications(e) {
+    e.stopPropagation();
+    if (!confirm("Clear all alerts?")) return;
+    try {
+      await apiCall("/notifications", { method: 'DELETE' });
+      fetchNotifications();
+    } catch (err) {}
+  }
+  
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+  }
   
   // Start the layout process
   document.addEventListener("DOMContentLoaded", () => {
@@ -139,6 +235,6 @@
     window.location.href = isInsidePages ? "../login.html" : "login.html";
   }
   
-  window.Layout = { showToast };
+  window.Layout = { showToast, openPdfPreview, closePdfPreview, fetchNotifications, markAsRead, clearNotifications };
   window.logout = logout;
 })();

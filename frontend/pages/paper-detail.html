@@ -52,20 +52,12 @@
       }
       
       try {
-        // Fetch specific paper detail including reviews
         const data = await apiCall(`/papers/${paperId}`);
         displayPaperDetail(data.paper, data.reviews);
       } catch (err) {
         console.error(err);
-        window.Layout.showToast("Failed to load paper details", "error");
-        document.getElementById("paper-detail").innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">⚠️</div>
-            <div class="empty-title">Error</div>
-            <div class="empty-description">${err.message}</div>
-            <a href="papers.html" class="btn btn-primary" style="margin-top: 20px;">Back to Papers</a>
-          </div>
-        `;
+        window.Layout.showToast("Failed to load details.", "error");
+        document.getElementById("paper-detail").innerHTML = '<div class="empty-state">Error loading paper.</div>';
       }
     }
     
@@ -75,323 +67,199 @@
       if (paper.status === "accepted") statusClass = "badge-accepted";
       if (paper.status === "rejected") statusClass = "badge-rejected";
       
-      // 1. Render Reviews Section
+      // 1. Peer Reviews Section
       let reviewsHtml = '<h4 style="margin-top: 32px; border-top: 1px solid var(--border-light); padding-top: 24px;">Peer Review Verdicts</h4>';
-      
       if (reviews && reviews.length > 0) {
         reviewsHtml += '<div style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">';
         reviews.forEach(review => {
           reviewsHtml += `
-            <div class="review-item" style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-light);">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+            <div class="review-item" style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-light);">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span style="font-weight: 600; color: var(--primary);">${escapeHtml(review.reviewerName)}</span>
                 <span style="color: var(--primary); font-weight: 600;">${"★".repeat(review.rating)}${"☆".repeat(5-review.rating)}</span>
               </div>
               <div style="margin-bottom: 8px;">Decision: <strong style="text-transform: capitalize;">${review.decision}</strong></div>
-              <div style="color: var(--text-secondary); font-style: italic; line-height: 1.5;">"${escapeHtml(review.comment)}"</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 12px;">Submitted: ${new Date(review.createdAt).toLocaleString()}</div>
+              <p style="color: var(--text-secondary); font-style: italic; font-size: 14px;">"${escapeHtml(review.comment)}"</p>
             </div>
           `;
         });
         reviewsHtml += '</div>';
       } else {
-        reviewsHtml += '<p style="color: var(--text-muted); padding: 16px 0;">Waiting for reviews to be submitted...</p>';
+        reviewsHtml += '<p style="color: var(--text-muted); margin-top: 12px;">No reviews available yet.</p>';
       }
 
-      // 2. Add Reviewer Form (IF assigned and not submitted yet - or just show for all assigned)
-      let reviewerActions = '';
-      const isAssigned = paper.reviewerIds.includes(user.id);
-      
-      if (isAssigned || user.role === 'admin' || user.role === 'chair') {
-        // Find if this specific user already has a review
-        const myReview = reviews ? reviews.find(r => r.reviewerId === user.id) : null;
-        
-        reviewerActions = `
-          <div class="reviewer-actions-section" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-light);">
-            <h4 style="margin-bottom: 24px; color: var(--primary);">${myReview ? 'Update Your Review' : 'Submit Your Review'}</h4>
-            <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
-              <div class="card-body">
-                <div class="form-group">
-                  <label class="form-label">Review Rating (1-5 Stars)</label>
-                  <select id="review-rating" class="form-input">
-                    <option value="5" ${myReview?.rating === 5 ? 'selected' : ''}>5 Stars - Excellent</option>
-                    <option value="4" ${myReview?.rating === 4 ? 'selected' : ''}>4 Stars - Good</option>
-                    <option value="3" ${(!myReview || myReview?.rating === 3) ? 'selected' : ''}>3 Stars - Average</option>
-                    <option value="2" ${myReview?.rating === 2 ? 'selected' : ''}>2 Stars - Poor</option>
-                    <option value="1" ${myReview?.rating === 1 ? 'selected' : ''}>1 Star - Very Poor</option>
-                  </select>
+      // 2. Author Actions: Camera-Ready Submission
+      let finalSubmissionHtml = '';
+      if (paper.authorId === user.id && paper.status === 'accepted') {
+        finalSubmissionHtml = `
+          <div class="card" style="margin-top: 32px; border: 1px solid var(--success); background: rgba(34, 197, 94, 0.05);">
+            <div class="card-header"><h4 class="card-title">🚀 Camera-Ready Submission</h4></div>
+            <div class="card-body">
+              <p style="font-size: 14px; margin-bottom: 16px;">Congratulations! Your paper has been accepted. Please upload the final camera-ready version below.</p>
+              ${paper.finalFile ? `
+                <div style="margin-bottom: 16px; color: var(--success); font-weight: 600;">
+                  ✅ Final version already uploaded: <a href="${UPLOAD_BASE_URL}/${paper.finalFile}" target="_blank">View Final PDF</a>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">Recommendation</label>
-                  <select id="review-decision" class="form-input">
-                    <option value="accept" ${myReview?.decision === 'accept' ? 'selected' : ''}>Accept Submission</option>
-                    <option value="revisions" ${myReview?.decision === 'revisions' ? 'selected' : ''}>Request Revisions</option>
-                    <option value="reject" ${myReview?.decision === 'reject' ? 'selected' : ''}>Reject Submission</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Comments for the Authors</label>
-                  <textarea id="review-comment" class="form-input" style="min-height: 120px;" placeholder="Provide detailed feedback...">${myReview?.comment || ''}</textarea>
-                </div>
-                <button class="btn btn-primary" onclick="submitReview()" id="review-submit-btn">${myReview ? 'Update Review' : 'Submit Official Review'}</button>
+              ` : ''}
+              <div class="form-group">
+                <label class="form-label">Final Manuscript (PDF)</label>
+                <input type="file" id="final-file" class="form-input" accept=".pdf">
               </div>
+              <button class="btn btn-success" onclick="uploadFinal()" id="final-btn">Upload Final Version</button>
             </div>
           </div>
         `;
       }
 
-      // 3. Add Admin/Chair Actions
+      // 3. Admin assignment & status
       let adminActions = '';
       if (user.role === 'admin' || user.role === 'chair') {
         adminActions = `
-          <div class="admin-actions-section" style="margin-top: 40px; padding-top: 32px; border-top: 2px solid var(--border-light);">
-            <h3 style="margin-bottom: 24px; color: var(--primary);">Program Chair Controls</h3>
-            
-            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; margin-bottom: 32px;">
-              <!-- Multi-Assignment Card -->
-              <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
-                <div class="card-header"><h4 class="card-title">Peer Review Assignments</h4></div>
+          <div class="admin-actions" style="margin-top: 40px; border-top: 2px solid var(--border-light); padding-top: 32px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+              <div class="card" style="background: var(--bg-secondary);">
+                <div class="card-header"><h4 class="card-title">Assign Experts</h4></div>
                 <div class="card-body">
-                  <div id="assigned-reviewers-list" style="margin-bottom: 16px; font-size: 14px;">
-                    <p style="color: var(--text-muted); font-weight: 500; margin-bottom: 10px;">Currently Assigned:</p>
-                    <div id="reviewer-tags" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                       ${paper.reviewerIds.length === 0 ? '<em class="text-muted">No reviewers assigned yet.</em>' : '<span class="badge badge-pending">Assigned to ' + paper.reviewerIds.length + ' expert(s)</span>'}
-                    </div>
+                  <div class="form-group">
+                    <select id="reviewer-select" class="form-input"><option value="">-- Select Expert --</option></select>
                   </div>
-                  <div class="form-group" style="margin-top: 20px;">
-                    <label class="form-label">Add Reviewer</label>
-                    <select id="reviewer-select" class="form-input">
-                      <option value="">-- Choose Reviewer to Add --</option>
-                    </select>
-                  </div>
-                  <button class="btn btn-primary btn-sm" onclick="assignReviewer()" id="assign-btn">Add Reviewer</button>
+                  <button class="btn btn-primary btn-sm" onclick="assignReviewer()">Add Reviewer</button>
                 </div>
               </div>
-
-              <!-- Final Verdict Card -->
-              <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
-                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                  <h4 class="card-title">Final Decision</h4>
-                  <button class="btn btn-sm btn-danger" onclick="deletePaper()" title="Delete Paper Permanently">
-                    🗑️
-                  </button>
+              <div class="card" style="background: var(--bg-secondary);">
+                <div class="card-header"><h4 class="card-title">Final Verdict</h4></div>
+                <div class="card-body" style="display: flex; gap: 12px;">
+                  <button class="btn btn-success" style="flex: 1;" onclick="updateStatus('accepted')">Accept</button>
+                  <button class="btn btn-danger" style="flex: 1;" onclick="updateStatus('rejected')">Reject</button>
                 </div>
-                <div class="card-body">
-                  <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Make the final call after reviewing all feedback.</p>
-                  <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button class="btn btn-success" style="width: 100%;" onclick="updateStatus('accepted')">Emit Acceptance Letter</button>
-                    <button class="btn btn-danger" style="width: 100%;" onclick="updateStatus('rejected')">Emit Rejection Letter</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Schedule -->
-            <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border-light);">
-              <div class="card-header"><h4 class="card-title">Set Presentation Schedule</h4></div>
-              <div class="card-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-                  <div class="form-group">
-                    <label class="form-label">Date</label>
-                    <input type="date" id="sched-date" class="form-input" value="${paper.schedule?.date || ''}">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Time</label>
-                    <input type="time" id="sched-time" class="form-input" value="${paper.schedule?.time || ''}">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Room</label>
-                    <input type="text" id="sched-room" class="form-input" placeholder="e.g. Hall A" value="${paper.schedule?.room || ''}">
-                  </div>
-                </div>
-                <button class="btn btn-primary" onclick="updateSchedule()">Update Schedule</button>
               </div>
             </div>
           </div>
         `;
-        
         setTimeout(loadAllReviewers, 100);
       }
-      
-      container.innerHTML = `
-        <div class="paper-detail">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-            <h1 style="margin: 0; font-size: 28px;">${escapeHtml(paper.title)}</h1>
-            <span class="badge ${statusClass}" style="padding: 8px 16px; font-size: 14px;">${paper.status.toUpperCase()}</span>
-          </div>
-          <div class="paper-meta" style="margin-bottom: 32px; font-size: 15px; color: var(--text-secondary);">
-            <span>Author: <strong>${escapeHtml(paper.authorName)}</strong></span>
-            <span style="margin: 0 16px;">|</span>
-            <span>Submission Date: ${new Date(paper.createdAt).toLocaleDateString()}</span>
-          </div>
-          
-          <div style="background: white; padding: 24px; border-radius: 12px; border: 1px solid var(--border-light); margin-bottom: 32px;">
-            <h4 style="margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px;">Abstract</h4>
-            <p style="color: var(--text-secondary); line-height: 1.7; font-size: 16px; white-space: pre-wrap;">${escapeHtml(paper.abstract)}</p>
-          </div>
 
-          ${paper.file ? `
-            <div style="margin-bottom: 40px;">
-              <a href="${UPLOAD_BASE_URL}/${paper.file}" target="_blank" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
-                <span>📂</span> View Submitted PDF Manuscript
-              </a>
+      // 4. Reviewer form
+      let reviewerActions = '';
+      if (paper.reviewerIds.includes(user.id)) {
+        reviewerActions = `
+          <div class="reviewer-actions" style="margin-top: 32px; border-top: 1px solid var(--border-light); padding-top: 24px;">
+            <h4 style="margin-bottom: 16px;">Submit Your Feedback</h4>
+            <div class="form-group">
+              <label class="form-label">Rating</label>
+              <select id="review-rating" class="form-input">
+                <option value="5">5 - Excellent</option><option value="4">4 - Good</option>
+                <option value="3" selected>3 - Fair</option><option value="2">2 - Poor</option><option value="1">1 - Bad</option>
+              </select>
             </div>
-          ` : ""}
-          
-          ${paper.schedule && paper.schedule.date ? `
-            <div class="schedule-info" style="background: rgba(59, 130, 246, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 40px; border-left: 5px solid var(--primary);">
-              <h4 style="margin-top:0; color: var(--primary); margin-bottom: 8px;">Presentation Session Scheduled</h4>
-              <p style="margin:0; font-size: 16px;">The camera-ready presentation is set for <strong>${paper.schedule.date}</strong> at <strong>${paper.schedule.time}</strong> in <strong>${paper.schedule.room}</strong>.</p>
+            <div class="form-group">
+              <label class="form-label">Recommendation</label>
+              <select id="review-decision" class="form-input">
+                <option value="accept">Accept</option><option value="revisions">Revisions</option><option value="reject">Reject</option>
+              </select>
             </div>
-          ` : ""}
-          
-          ${reviewsHtml}
-          ${reviewerActions}
-          ${adminActions}
-          
-          <div style="margin-top: 48px;">
-            <a href="papers.html" class="btn btn-outline">← Back to Portal</a>
+            <div class="form-group">
+              <label class="form-label">Comments</label>
+              <textarea id="review-comment" class="form-input" rows="4"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="submitReview()">Submit Review</button>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="paper-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px;">
+          <div>
+            <h1 style="margin: 0; font-size: 24px;">${escapeHtml(paper.title)}</h1>
+            <p style="color: var(--text-secondary); margin: 8px 0;">By ${escapeHtml(paper.authorName)}</p>
+          </div>
+          <span class="badge ${statusClass}">${paper.status.toUpperCase()}</span>
+        </div>
+        
+        <div class="section-card" style="background: white; padding: 24px; border-radius: 12px; border: 1px solid var(--border-light);">
+          <h4 style="margin-top: 0; margin-bottom: 12px;">Abstract</h4>
+          <p style="color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap;">${escapeHtml(paper.abstract)}</p>
+          <div style="margin-top: 20px; display: flex; gap: 12px;">
+            <button onclick="Layout.openPdfPreview('${UPLOAD_BASE_URL}/${paper.file}', '${escapeHtml(paper.title)}')" class="btn btn-outline btn-sm">Preview Manuscript</button>
+            ${paper.finalFile ? `<button onclick="Layout.openPdfPreview('${UPLOAD_BASE_URL}/${paper.finalFile}', 'FINAL: ${escapeHtml(paper.title)}')" class="btn btn-success btn-sm">Preview Final Version</button>` : ''}
           </div>
         </div>
+
+        ${finalSubmissionHtml}
+        ${reviewsHtml}
+        ${reviewerActions}
+        ${adminActions}
       `;
     }
 
-    async function submitReview() {
-      const paperId = getPaperId();
-      const reviewRating = document.getElementById('review-rating').value;
-      const reviewDecision = document.getElementById('review-decision').value;
-      const reviewComment = document.getElementById('review-comment').value;
-
-      if (!reviewComment) {
-        window.Layout.showToast("Please provide detailed feedback for the authors.", "error");
-        return;
-      }
-
-      const btn = document.getElementById('review-submit-btn');
+    async function uploadFinal() {
+      const fileInput = document.getElementById("final-file");
+      if (!fileInput.files[0]) return window.Layout.showToast("Select a file first", "error");
+      
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      
+      const btn = document.getElementById("final-btn");
       try {
-        btn.disabled = true;
-        btn.textContent = "Processing...";
-
-        await apiCall(`/papers/${paperId}/review`, {
-          method: 'PUT',
-          body: JSON.stringify({ reviewComment, reviewRating, reviewDecision })
-        });
-
-        window.Layout.showToast("Peer review submitted successfully.", "success");
+        btn.disabled = true; btn.innerText = "Uploading...";
+        await apiCall(`/papers/${getPaperId()}/final`, { method: 'PUT', body: formData });
+        window.Layout.showToast("Final version uploaded!", "success");
         loadPaperDetail();
       } catch (err) {
         window.Layout.showToast(err.message, "error");
       } finally {
-        btn.disabled = false;
-        btn.textContent = "Update/Submit Review";
+        btn.disabled = false; btn.innerText = "Upload Final Version";
       }
+    }
+
+    async function submitReview() {
+      const payload = {
+        reviewRating: document.getElementById('review-rating').value,
+        reviewDecision: document.getElementById('review-decision').value,
+        reviewComment: document.getElementById('review-comment').value
+      };
+      try {
+        await apiCall(`/papers/${getPaperId()}/review`, { method: 'PUT', body: JSON.stringify(payload) });
+        window.Layout.showToast("Review submitted!", "success");
+        loadPaperDetail();
+      } catch (err) { window.Layout.showToast(err.message, "error"); }
     }
 
     async function loadAllReviewers() {
       const select = document.getElementById('reviewer-select');
       if (!select) return;
-      
       try {
         const reviewers = await apiCall("/papers/reviewers");
-        reviewers.forEach(rev => {
-          const option = document.createElement('option');
-          option.value = rev._id;
-          option.textContent = `${rev.name} (${rev.email})`;
-          select.appendChild(option);
+        reviewers.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r._id; opt.innerText = r.name;
+          select.appendChild(opt);
         });
-      } catch (err) {
-        console.error("Failed to load experts list:", err);
-      }
+      } catch (err) {}
     }
 
     async function assignReviewer() {
-      const paperId = getPaperId();
       const reviewerId = document.getElementById('reviewer-select').value;
-      if (!reviewerId) {
-        window.Layout.showToast("Please select an expert from the list.", "error");
-        return;
-      }
-      
-      const btn = document.getElementById('assign-btn');
       try {
-        btn.disabled = true;
-        btn.textContent = "Assigning...";
-        
-        await apiCall(`/papers/${paperId}/assign`, {
-          method: 'PUT',
-          body: JSON.stringify({ reviewerId })
-        });
-        
-        window.Layout.showToast("New expert assigned successfully.", "success");
+        await apiCall(`/papers/${getPaperId()}/assign`, { method: 'PUT', body: JSON.stringify({ reviewerId }) });
+        window.Layout.showToast("Reviewer added", "success");
         loadPaperDetail();
-      } catch (err) {
-        window.Layout.showToast(err.message, "error");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Add Reviewer";
-      }
+      } catch (err) { window.Layout.showToast(err.message, "error"); }
     }
 
     async function updateStatus(status) {
-      const paperId = getPaperId();
       try {
-        await apiCall(`/papers/${paperId}/status`, {
-          method: 'PUT',
-          body: JSON.stringify({ status })
-        });
-        window.Layout.showToast(`Paper marked as ${status.toUpperCase()} and verdict emitted.`, "success");
+        await apiCall(`/papers/${getPaperId()}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+        window.Layout.showToast(`Status set to ${status}`, "success");
         loadPaperDetail();
-      } catch (err) {
-        window.Layout.showToast(err.message, "error");
-      }
+      } catch (err) { window.Layout.showToast(err.message, "error"); }
     }
 
-    async function updateSchedule() {
-      const paperId = getPaperId();
-      const date = document.getElementById('sched-date').value;
-      const time = document.getElementById('sched-time').value;
-      const room = document.getElementById('sched-room').value;
-
-      if (!date || !time || !room) {
-        window.Layout.showToast("Incomplete schedule data.", "error");
-        return;
-      }
-
-      try {
-        await apiCall(`/papers/${paperId}/schedule`, {
-          method: 'PUT',
-          body: JSON.stringify({ date, time, room })
-        });
-        window.Layout.showToast("Session schedule updated.", "success");
-        loadPaperDetail();
-      } catch (err) {
-        window.Layout.showToast(err.message, "error");
-      }
-    }
-
-    async function deletePaper() {
-      const paperId = getPaperId();
-      if (!confirm("🚨 PERMANENT DELETION: Are you sure you want to completely erase this paper and its associated reviews?")) return;
-
-      try {
-        await apiCall(`/papers/${paperId}`, { method: 'DELETE' });
-        window.Layout.showToast("Paper erased from system.", "success");
-        window.location.href = "papers.html";
-      } catch (err) {
-        window.Layout.showToast(err.message, "error");
-      }
-    }
-    
     function escapeHtml(str) {
       if (!str) return "";
-      return String(str).replace(/[&<>]/g, function(m) {
-        if (m === "&") return "&amp;";
-        if (m === "<") return "&lt;";
-        if (m === ">") return "&gt;";
-        return m;
-      });
+      return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
     }
-    
+
     window.onload = loadPaperDetail;
   </script>
 </body>

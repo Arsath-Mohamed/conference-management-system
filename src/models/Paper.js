@@ -10,6 +10,7 @@ const paperSchema = new mongoose.Schema({
   reviewerIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   
   file: { type: String, default: null },
+  finalFile: { type: String, default: null },
 
   status: {
     type: String,
@@ -23,7 +24,7 @@ const paperSchema = new mongoose.Schema({
     room: { type: String, default: null }
   },
 
-  // Final decision metadata (optional, can be inferred from reviews)
+  // Final decision metadata
   conclusion: { type: String, default: null },
   decidedAt: { type: Date, default: null },
 

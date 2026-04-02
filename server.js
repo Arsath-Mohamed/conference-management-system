@@ -25,6 +25,7 @@ app.use("/api/auth", require("./src/routes/auth"));
 app.use("/api/papers", require("./src/routes/papers"));
 app.use("/api/users", require("./src/routes/users"));
 app.use("/api/settings", require("./src/routes/settings"));
+app.use("/api/notifications", require("./src/routes/notifications"));
 
 // Frontend
 app.get("*", (req, res) => {
