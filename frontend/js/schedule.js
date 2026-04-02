@@ -22,8 +22,8 @@ function displaySchedule(papers) {
   const container = document.getElementById("schedule-list");
   if (!container) return;
   
-  // Filter papers that have schedule
-  let scheduledPapers = papers.filter(p => p.schedule && p.schedule.date);
+  // Filter papers that are officially "Accepted" AND have a schedule date
+  let scheduledPapers = papers.filter(p => p.status === 'accepted' && p.schedule && p.schedule.date);
   
   if (scheduledPapers.length === 0) {
     container.innerHTML = `
