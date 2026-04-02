@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const Paper = require("../models/Paper");
 const User = require("../models/User");
+const Settings = require("../models/Settings");
 const { auth, isChair } = require("../middleware/auth");
 
 const router = express.Router();
@@ -51,6 +52,11 @@ router.get("/", async (req, res) => {
 
 // POST
 router.post("/", upload.single("file"), async (req, res) => {
+  const settings = await Settings.findOne();
+  if (!settings || !settings.isConferenceAnnounced) {
+    return res.status(403).json({ message: "Conference is not announced yet. Paper submissions are closed." });
+  }
+
   const { title, abstract } = req.body;
 
   const paper = new Paper({

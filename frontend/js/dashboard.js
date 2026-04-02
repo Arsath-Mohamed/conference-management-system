@@ -7,6 +7,8 @@ if (!token) {
   window.location.href = "../login.html";
 }
 
+let currentSettings = null;
+
 async function loadDashboard() {
   try {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -32,12 +34,59 @@ async function loadDashboard() {
       if (usersCard) usersCard.style.display = "none";
     }
     
+    // Load Settings if Admin or Chair
+    if (user.role === "admin" || user.role === "chair") {
+      const settingsCard = document.getElementById("conference-settings-card");
+      if (settingsCard) {
+        settingsCard.style.display = "block";
+        currentSettings = await apiCall("/settings");
+        updateSettingsUI();
+      }
+    }
+    
     // Display recent papers
     displayRecentPapers(papers.slice(0, 5));
     
   } catch (error) {
     console.error("Dashboard error:", error);
     window.Layout.showToast(error.message, "error");
+  }
+}
+
+function updateSettingsUI() {
+  const btn = document.getElementById("toggle-conference-btn");
+  if (!btn || !currentSettings) return;
+  
+  if (currentSettings.isConferenceAnnounced) {
+    btn.innerText = "Close Conference";
+    btn.className = "btn btn-danger";
+  } else {
+    btn.innerText = "Announce Conference";
+    btn.className = "btn btn-primary";
+  }
+}
+
+async function toggleConferenceStatus() {
+  if (!currentSettings) return;
+  
+  const newState = !currentSettings.isConferenceAnnounced;
+  const btn = document.getElementById("toggle-conference-btn");
+  btn.disabled = true;
+  btn.innerText = "Updating...";
+  
+  try {
+    currentSettings = await apiCall("/settings", {
+      method: "PUT",
+      body: JSON.stringify({ isConferenceAnnounced: newState })
+    });
+    window.Layout.showToast(newState ? "Conference Announced successfully!" : "Conference Closed!", "success");
+    updateSettingsUI();
+  } catch (error) {
+    console.error("Settings error:", error);
+    window.Layout.showToast(error.message, "error");
+    updateSettingsUI(); // reset UI
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -86,6 +135,7 @@ function escapeHtml(str) {
 
 // Make functions globally available
 window.loadDashboard = loadDashboard;
+window.toggleConferenceStatus = toggleConferenceStatus;
 
 // Auto-load when DOM is ready
 document.addEventListener("DOMContentLoaded", loadDashboard);

@@ -46,6 +46,22 @@
           </div>
         </div>
 
+        <!-- Conference Settings (Admin/Chair only) -->
+        <div class="card" id="conference-settings-card" style="display: none; margin-bottom: 24px;">
+          <div class="card-header">
+            <h3 class="card-title">Conference Settings</h3>
+          </div>
+          <div class="card-body" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h4 style="margin: 0 0 8px 0;">Conference Status</h4>
+              <p class="text-muted" style="margin: 0; font-size: 14px;">Toggle whether the conference is announced and open for authors to submit papers.</p>
+            </div>
+            <div>
+              <button id="toggle-conference-btn" class="btn" onclick="window.toggleConferenceStatus()">Loading...</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Recent Activity -->
         <div class="card">
           <div class="card-header">

@@ -10,9 +10,16 @@ if (!token) {
 
 async function loadPapers() {
   try {
+    const settings = await apiCall("/settings");
+    
     // Show sections based on role
     if (user.role === "author") {
-      document.getElementById("submit-section").style.display = "block";
+      if (settings.isConferenceAnnounced) {
+        document.getElementById("submit-section").style.display = "block";
+      } else {
+        const closedMsg = document.getElementById("closed-message");
+        if (closedMsg) closedMsg.style.display = "block";
+      }
     }
 
     if (user.role === "admin" || user.role === "chair") {
