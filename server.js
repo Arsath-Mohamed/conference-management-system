@@ -6,32 +6,38 @@ const fs = require("fs");
 
 const app = express();
 
-// Create uploads folder if it doesn't exist
-if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
+// Absolute path for uploads
+const uploadsPath = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath);
 
 // Middleware
 app.use(express.json());
 app.use(cors());
-app.use(express.static("frontend"));
-app.use("/uploads", express.static("uploads"));
 
-// MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log("MongoDB error:", err));
+// Serve Static Files
+app.use(express.static(path.join(__dirname, "frontend")));
+app.use("/uploads", express.static(uploadsPath));
 
-// Routes
+// API Routes
 app.use("/api/auth", require("./src/routes/auth"));
 app.use("/api/papers", require("./src/routes/papers"));
 app.use("/api/users", require("./src/routes/users"));
 app.use("/api/settings", require("./src/routes/settings"));
 app.use("/api/notifications", require("./src/routes/notifications"));
 
-// Frontend
+// Updated Catch-all: ONLY for non-file navigational routes
 app.get("*", (req, res) => {
+  // If the request is for /api or has a file extension, don't serve index.html (it's a 404)
+  if (req.url.startsWith('/api') || req.url.includes('.')) {
+    return res.status(404).json({ message: "Not Found" });
+  }
   res.sendFile(path.join(__dirname, "frontend", "index.html"));
 });
 
-// Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log("Server running on " + PORT));
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected");
+    app.listen(PORT, () => console.log("Server running on " + PORT));
+  })
+  .catch(err => console.log("MongoDB error:", err));

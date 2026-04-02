@@ -1,12 +1,15 @@
 // ================= SHARED CONFIGURATION =================
 
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5000/api' 
-  : '/api';
+// Use absolute URLs for local development, relative for production
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-const UPLOAD_BASE_URL = window.location.hostname === 'localhost'
+const API_BASE_URL = isLocal 
+  ? 'http://localhost:5000/api' 
+  : `${window.location.origin}/api`;
+
+const UPLOAD_BASE_URL = isLocal
   ? 'http://localhost:5000/uploads'
-  : '/uploads';
+  : `${window.location.origin}/uploads`;
 
 // Helper function
 async function apiCall(endpoint, options = {}) {
@@ -28,7 +31,6 @@ async function apiCall(endpoint, options = {}) {
     }
   };
 
-  // Fix for FormData
   if (options.body instanceof FormData) {
     delete mergedOptions.headers["Content-Type"];
   }
@@ -43,13 +45,14 @@ async function apiCall(endpoint, options = {}) {
   return response.json();
 }
 
-// Toast
-window.Layout = window.Layout || {
-  showToast(message, type = "success") {
+// Global layout extensions
+window.Layout = window.Layout || {};
+if (!window.Layout.showToast) {
+  window.Layout.showToast = (message, type = "success") => {
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
     toast.innerText = message;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
-  }
-};
+  };
+}
