@@ -41,7 +41,7 @@ function displayReviews(papers) {
   let html = '';
   
   papers.forEach(paper => {
-    const isReviewed = !!paper.reviewComment;
+    const isReviewed = paper.isReviewed;
     const statusClass = paper.status === "pending" ? "badge-pending" : 
                         paper.status === "accepted" ? "badge-accepted" : "badge-rejected";
     

@@ -194,8 +194,16 @@
   async function markAsRead(id, link) {
     try {
       await apiCall(`/notifications/${id}/read`, { method: 'PUT' });
-      if (link) window.location.href = link;
-      else fetchNotifications();
+      if (link) {
+        const isInsidePages = window.location.pathname.includes("/pages/");
+        // If the link starts with /pages/ and we are ALREADY in /pages/, strip it
+        const finalLink = (isInsidePages && link.startsWith("/pages/")) 
+          ? link.replace("/pages/", "") 
+          : link;
+        window.location.href = finalLink;
+      } else {
+        fetchNotifications();
+      }
     } catch (err) {}
   }
 

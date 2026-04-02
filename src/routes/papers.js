@@ -38,17 +38,38 @@ router.get("/reviewers", async (req, res) => {
 
 // GET papers list
 router.get("/", async (req, res) => {
-  let papers;
+  try {
+    let papers;
+    const userId = req.user.id;
 
-  if (req.user.role === "admin" || req.user.role === "chair") {
-    papers = await Paper.find().sort({ createdAt: -1 });
-  } else if (req.user.role === "reviewer") {
-    papers = await Paper.find({ reviewerIds: req.user.id }).sort({ createdAt: -1 });
-  } else {
-    papers = await Paper.find({ authorId: req.user.id }).sort({ createdAt: -1 });
+    if (req.user.role === "admin" || req.user.role === "chair") {
+      // Chairs see all papers + how many reviews they have
+      const rawPapers = await Paper.find().sort({ createdAt: -1 }).lean();
+      papers = await Promise.all(rawPapers.map(async p => {
+        const reviewCount = await Review.countDocuments({ paperId: p._id });
+        return { ...p, reviewCount };
+      }));
+    } else if (req.user.role === "reviewer") {
+      // Reviewers see assigned papers + if they've reviewed them
+      const rawPapers = await Paper.find({ reviewerIds: userId }).sort({ createdAt: -1 }).lean();
+      papers = await Promise.all(rawPapers.map(async p => {
+        const myReview = await Review.findOne({ paperId: p._id, reviewerId: userId });
+        return { 
+          ...p, 
+          isReviewed: !!myReview,
+          reviewDecision: myReview?.decision,
+          reviewRating: myReview?.rating
+        };
+      }));
+    } else {
+      // Authors see their own papers
+      papers = await Paper.find({ authorId: userId }).sort({ createdAt: -1 });
+    }
+
+    res.json(papers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  res.json(papers);
 });
 
 // GET single paper details (Anonymized for Authors)
@@ -59,9 +80,9 @@ router.get("/:id", async (req, res) => {
 
     const reviews = await Review.find({ paperId: req.params.id }).sort({ createdAt: -1 });
     
-    // Authorization
-    const isAuthor = paper.authorId === req.user.id;
-    const isReviewer = paper.reviewerIds.includes(req.user.id);
+    // Authorization (Force toString() for safe comparison)
+    const isAuthor = paper.authorId.toString() === req.user.id;
+    const isReviewer = paper.reviewerIds.some(id => id.toString() === req.user.id);
     const isPowerUser = req.user.role === "admin" || req.user.role === "chair";
 
     if (!isAuthor && !isReviewer && !isPowerUser) {
@@ -161,7 +182,7 @@ router.put("/:id/assign", isChair, async (req, res) => {
   const paper = await Paper.findById(req.params.id);
   if (!paper) return res.status(404).json({ message: "Paper not found" });
 
-  if (!paper.reviewerIds.includes(reviewerId)) {
+  if (!paper.reviewerIds.some(id => id.toString() === reviewerId)) {
     paper.reviewerIds.push(reviewerId);
     await paper.save();
     
@@ -194,7 +215,7 @@ router.put("/:id/review", async (req, res) => {
     const paper = await Paper.findById(paperId);
     if (!paper) return res.status(404).json({ message: "Paper not found" });
 
-    if (!paper.reviewerIds.includes(req.user.id) && req.user.role !== "admin" && req.user.role !== "chair") {
+    if (!paper.reviewerIds.some(id => id.toString() === req.user.id) && req.user.role !== "admin" && req.user.role !== "chair") {
       return res.status(403).json({ message: "Not authorized to review this paper." });
     }
 

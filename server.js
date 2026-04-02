@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const multer = require("multer");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
@@ -32,6 +33,20 @@ app.get("*", (req, res) => {
     return res.status(404).json({ message: "Not Found" });
   }
   res.sendFile(path.join(__dirname, "frontend", "index.html"));
+});
+
+// Global Error Handler (Multer & General)
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "File too large (Max 5MB)" });
+    }
+    return res.status(400).json({ message: err.message });
+  }
+  if (err) {
+    return res.status(500).json({ message: err.message || "Internal Server Error" });
+  }
+  next();
 });
 
 const PORT = process.env.PORT || 5000;
