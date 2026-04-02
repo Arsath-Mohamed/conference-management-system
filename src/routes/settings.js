@@ -16,14 +16,27 @@ router.get("/", async (req, res) => {
 
 // UPDATE global settings (Chair/Admin only)
 router.put("/", auth, isChair, async (req, res) => {
-  const { isConferenceAnnounced } = req.body;
+  const { 
+    isConferenceAnnounced, 
+    name, 
+    description, 
+    submissionDeadline, 
+    eventDate, 
+    location 
+  } = req.body;
   
   let settings = await Settings.findOne();
   if (!settings) {
     settings = new Settings();
   }
   
-  settings.isConferenceAnnounced = isConferenceAnnounced;
+  if (isConferenceAnnounced !== undefined) settings.isConferenceAnnounced = isConferenceAnnounced;
+  if (name !== undefined) settings.name = name;
+  if (description !== undefined) settings.description = description;
+  if (submissionDeadline !== undefined) settings.submissionDeadline = submissionDeadline;
+  if (eventDate !== undefined) settings.eventDate = eventDate;
+  if (location !== undefined) settings.location = location;
+
   await settings.save();
   
   res.json(settings);

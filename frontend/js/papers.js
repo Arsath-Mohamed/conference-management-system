@@ -10,17 +10,42 @@ if (!token) {
 
 async function loadPapers() {
   try {
+    
     const settings = await apiCall("/settings");
+    
+    // Inject Info
+    if (settings.isConferenceAnnounced && settings.name) {
+      document.getElementById("conference-info-card").style.display = "block";
+      document.getElementById("info-name").innerText = settings.name;
+      document.getElementById("info-desc").innerText = settings.description || "";
+      document.getElementById("info-date").innerText = settings.eventDate ? new Date(settings.eventDate).toLocaleDateString() : "TBD";
+      document.getElementById("info-loc").innerText = settings.location || "TBD";
+      document.getElementById("info-deadline").innerText = settings.submissionDeadline ? new Date(settings.submissionDeadline).toLocaleDateString() : "TBD";
+    }
+
+    // Check Deadline
+    let isDeadlinePassed = false;
+    if (settings.submissionDeadline) {
+      isDeadlinePassed = new Date() > new Date(settings.submissionDeadline);
+    }
     
     // Show sections based on role
     if (user.role === "author") {
-      if (settings.isConferenceAnnounced) {
+      if (settings.isConferenceAnnounced && !isDeadlinePassed) {
         document.getElementById("submit-section").style.display = "block";
+        document.getElementById("closed-message").style.display = "none";
       } else {
+        document.getElementById("submit-section").style.display = "none";
         const closedMsg = document.getElementById("closed-message");
-        if (closedMsg) closedMsg.style.display = "block";
+        if (closedMsg) {
+          closedMsg.style.display = "block";
+          if (isDeadlinePassed) {
+             closedMsg.innerHTML = '<div class="card-body" style="color: #856404; padding: 16px;"><strong>Notice:</strong> The submission deadline (' + new Date(settings.submissionDeadline).toLocaleDateString() + ') has passed. You cannot submit new papers.</div>';
+          }
+        }
       }
     }
+
 
     if (user.role === "admin" || user.role === "chair") {
       const bulkActions = document.getElementById("bulk-actions");

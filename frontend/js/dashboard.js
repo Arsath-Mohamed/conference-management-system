@@ -57,27 +57,50 @@ function updateSettingsUI() {
   const btn = document.getElementById("toggle-conference-btn");
   if (!btn || !currentSettings) return;
   
+  // Populate form
+  if (document.getElementById("conf-name")) {
+    document.getElementById("conf-name").value = currentSettings.name || "";
+    document.getElementById("conf-desc").value = currentSettings.description || "";
+    document.getElementById("conf-location").value = currentSettings.location || "";
+    
+    if (currentSettings.submissionDeadline) {
+      document.getElementById("conf-deadline").value = currentSettings.submissionDeadline.split('T')[0];
+    }
+    if (currentSettings.eventDate) {
+      document.getElementById("conf-eventdate").value = currentSettings.eventDate.split('T')[0];
+    }
+  }
+
   if (currentSettings.isConferenceAnnounced) {
     btn.innerText = "Close Conference";
     btn.className = "btn btn-danger";
   } else {
-    btn.innerText = "Announce Conference";
+    btn.innerText = "Save & Announce";
     btn.className = "btn btn-primary";
   }
 }
 
-async function toggleConferenceStatus() {
+async function saveConferenceSettings() {
   if (!currentSettings) return;
   
   const newState = !currentSettings.isConferenceAnnounced;
   const btn = document.getElementById("toggle-conference-btn");
   btn.disabled = true;
-  btn.innerText = "Updating...";
+  btn.innerText = "Saving...";
+  
+  const payload = {
+    isConferenceAnnounced: newState,
+    name: document.getElementById("conf-name")?.value || "Annual Conference",
+    description: document.getElementById("conf-desc")?.value || "",
+    submissionDeadline: document.getElementById("conf-deadline")?.value ? new Date(document.getElementById("conf-deadline").value).toISOString() : null,
+    eventDate: document.getElementById("conf-eventdate")?.value ? new Date(document.getElementById("conf-eventdate").value).toISOString() : null,
+    location: document.getElementById("conf-location")?.value || ""
+  };
   
   try {
     currentSettings = await apiCall("/settings", {
       method: "PUT",
-      body: JSON.stringify({ isConferenceAnnounced: newState })
+      body: JSON.stringify(payload)
     });
     window.Layout.showToast(newState ? "Conference Announced successfully!" : "Conference Closed!", "success");
     updateSettingsUI();
@@ -88,6 +111,7 @@ async function toggleConferenceStatus() {
   } finally {
     btn.disabled = false;
   }
+}
 }
 
 function displayRecentPapers(papers) {
@@ -135,7 +159,7 @@ function escapeHtml(str) {
 
 // Make functions globally available
 window.loadDashboard = loadDashboard;
-window.toggleConferenceStatus = toggleConferenceStatus;
+window.saveConferenceSettings = saveConferenceSettings;
 
 // Auto-load when DOM is ready
 document.addEventListener("DOMContentLoaded", loadDashboard);

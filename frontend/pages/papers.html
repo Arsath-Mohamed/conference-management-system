@@ -14,6 +14,18 @@
       <div id="header-container"></div>
 
       <div class="page-container">
+        <!-- Conference Info Card -->
+        <div class="card" id="conference-info-card" style="display: none; margin-bottom: 24px;">
+          <div class="card-header"><h3 class="card-title" id="info-name">Conference Name</h3></div>
+          <div class="card-body">
+            <p id="info-desc" style="margin-bottom: 16px; color: var(--text-secondary);"></p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+              <div><strong>Event Date:</strong> <span id="info-date">TBD</span></div>
+              <div><strong>Location:</strong> <span id="info-loc">TBD</span></div>
+              <div><strong>Submission Deadline:</strong> <span id="info-deadline" style="color: var(--danger); font-weight: 600;">TBD</span></div>
+            </div>
+          </div>
+        </div>
         <!-- Closed message (shown for authors when conference is closed) -->
         <div id="closed-message" class="card" style="display: none; background: #fff3cd; border-color: #ffeeba; margin-bottom: 24px;">
           <div class="card-body" style="color: #856404; padding: 16px;">

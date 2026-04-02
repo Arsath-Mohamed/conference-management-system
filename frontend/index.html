@@ -298,7 +298,9 @@
         const badge = document.getElementById('conference-status-badge');
         
         if (settings.isConferenceAnnounced) {
-          badge.innerHTML = '<span style="background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2);" class="hero-badge">🟢 Submissions Open</span>';
+          document.querySelector('h1').innerHTML = settings.name + '<br>with <span>elegance</span>.';
+          let dateStr = settings.submissionDeadline ? new Date(settings.submissionDeadline).toLocaleDateString() : 'TBD';
+          badge.innerHTML = '<span style="background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2);" class="hero-badge">🟢 Submissions Open until ' + dateStr + '</span>';
         } else {
           badge.innerHTML = '<span style="background: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2);" class="hero-badge">🟡 Coming Soon</span>';
         }
