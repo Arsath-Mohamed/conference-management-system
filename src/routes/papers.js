@@ -304,19 +304,55 @@ router.put("/:id/rebuttal", async (req, res) => {
   }
 });
 
-// STATUS (Final Decision)
-router.put("/:id/status", isChair, async (req, res) => {
-  const { status } = req.body;
-  const paper = await Paper.findByIdAndUpdate(req.params.id, { status }, { new: true });
-  
-  // Notify Author
-  await Notification.create({
-    userId: paper.authorId,
-    message: `Final decision for your paper "${paper.title}": ${status.toUpperCase()}`,
-    link: `/pages/paper-detail.html?id=${paper._id}`
-  });
-  
-  res.json(paper);
+// PUT /api/papers/:id/decision
+router.put("/:id/decision", isChair, async (req, res) => {
+  try {
+    const { decision } = req.body; // "accepted", "rejected", or "revisions"
+    const paper = await Paper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ message: "Paper not found" });
+
+    // 1. Fetch all reviews for this paper
+    const reviews = await Review.find({ paperId: req.params.id });
+    
+    // 2. Calculate Stats
+    const totalReviews = reviews.length;
+    const avgRating = totalReviews > 0 
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(2) 
+      : 0;
+    
+    const summary = {
+      accept: reviews.filter(r => r.decision === "accept").length,
+      reject: reviews.filter(r => r.decision === "reject").length,
+      revisions: reviews.filter(r => r.decision === "revisions").length
+    };
+
+    // 3. Update Paper
+    paper.status = decision;
+    paper.conclusion = `Average Rating: ${avgRating}. Verdicts: ${summary.accept} Accept, ${summary.reject} Reject.`;
+    paper.decidedAt = new Date();
+
+    await paper.save();
+
+    // 4. Notify Author
+    await Notification.create({
+      userId: paper.authorId,
+      message: `Final decision for your paper "${paper.title}": ${decision.toUpperCase()}`,
+      link: `/pages/paper-detail.html?id=${paper._id}`
+    });
+
+    // 5. Response
+    res.json({
+      message: "Decision finalized",
+      paper,
+      stats: {
+        averageRating: avgRating,
+        totalReviews,
+        decisionSummary: summary
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // DELETE Paper

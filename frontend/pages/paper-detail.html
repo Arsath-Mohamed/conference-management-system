@@ -143,9 +143,10 @@
               </div>
               <div class="card" style="background: var(--bg-secondary);">
                 <div class="card-header"><h4 class="card-title">Final Verdict</h4></div>
-                <div class="card-body" style="display: flex; gap: 12px;">
-                  <button class="btn btn-success" style="flex: 1;" onclick="updateStatus('accepted')">Accept</button>
-                  <button class="btn btn-danger" style="flex: 1;" onclick="updateStatus('rejected')">Reject</button>
+                <div class="card-body" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                  <button class="btn btn-success" style="flex: 1;" onclick="makeDecision('accepted')">Accept</button>
+                  <button class="btn btn-danger" style="flex: 1;" onclick="makeDecision('rejected')">Reject</button>
+                  <button class="btn btn-warning" style="flex: 1; min-width: 100%;" onclick="makeDecision('revisions')">Request Revisions</button>
                 </div>
               </div>
             </div>
@@ -279,10 +280,18 @@
       } catch (err) { window.Layout.showToast(err.message, "error"); }
     }
 
-    async function updateStatus(status) {
+    async function makeDecision(decision) {
       try {
-        await apiCall(`/papers/${getPaperId()}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
-        window.Layout.showToast(`Status set to ${status}`, "success");
+        const res = await apiCall(`/papers/${getPaperId()}/decision`, { 
+          method: 'PUT', 
+          body: JSON.stringify({ decision }) 
+        });
+        
+        // Show automated stats in toast
+        const stats = res.stats;
+        const msg = `Verdict: ${decision.toUpperCase()}. Avg: ${stats.averageRating}. Counts: ${stats.decisionSummary.accept}A/${stats.decisionSummary.reject}R.`;
+        window.Layout.showToast(msg, "success");
+        
         loadPaperDetail();
       } catch (err) { window.Layout.showToast(err.message, "error"); }
     }

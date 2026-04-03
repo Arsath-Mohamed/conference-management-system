@@ -20,7 +20,7 @@ const paperSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["submitted", "under_review", "reviewed", "accepted", "rejected"],
+    enum: ["submitted", "under_review", "reviewed", "accepted", "rejected", "revisions"],
     default: "submitted"
   },
 
