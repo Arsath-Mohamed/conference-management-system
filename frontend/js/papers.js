@@ -8,43 +8,66 @@ if (!token) {
   window.location.href = "../login.html";
 }
 
-let allPapers = []; // Global cache for filtering
+let allConferences = [];
+
+async function loadConferences() {
+  try {
+    allConferences = await apiCall("/conferences");
+    const select = document.getElementById("conferenceId");
+    if (select) {
+      allConferences.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c._id;
+        opt.innerText = c.name;
+        select.appendChild(opt);
+      });
+    }
+  } catch (err) {
+    console.error("Load conferences error:", err);
+  }
+}
+
+function updateConferenceTopics() {
+  const confId = document.getElementById("conferenceId").value;
+  const container = document.getElementById("topics-container");
+  if (!container) return;
+  
+  container.innerHTML = "";
+  const conf = allConferences.find(c => c._id === confId);
+  if (conf && conf.topics) {
+    conf.topics.forEach(topic => {
+      const label = document.createElement("label");
+      label.style.display = "flex";
+      label.style.alignItems = "center";
+      label.style.gap = "4px";
+      label.style.background = "#f1f5f9";
+      label.style.padding = "4px 8px";
+      label.style.borderRadius = "4px";
+      label.style.fontSize = "12px";
+      label.style.cursor = "pointer";
+      
+      label.innerHTML = `
+        <input type="checkbox" name="topics" value="${topic}">
+        ${topic}
+      `;
+      container.appendChild(label);
+    });
+  }
+}
 
 async function loadPapers() {
   try {
-    const settings = await apiCall("/settings");
-    
-    // Conference metadata display
-    if (settings.isConferenceAnnounced && settings.name) {
-      document.getElementById("conference-info-card").style.display = "block";
-      document.getElementById("info-name").innerText = settings.name;
-      document.getElementById("info-desc").innerText = settings.description || "";
-      document.getElementById("info-date").innerText = settings.eventDate ? new Date(settings.eventDate).toLocaleDateString() : "TBD";
-      document.getElementById("info-loc").innerText = settings.location || "TBD";
-      document.getElementById("info-deadline").innerText = settings.submissionDeadline ? new Date(settings.submissionDeadline).toLocaleDateString() : "TBD";
-    }
-
-    const isDeadlinePassed = settings.submissionDeadline ? new Date() > new Date(settings.submissionDeadline) : false;
-    
     // Author submission guard
     if (user.role === "author") {
-      if (settings.isConferenceAnnounced && !isDeadlinePassed) {
-        document.getElementById("submit-section").style.display = "block";
-      } else {
-        const closedMsg = document.getElementById("closed-message");
-        if (closedMsg) {
-          closedMsg.style.display = "block";
-          if (isDeadlinePassed) {
-             closedMsg.innerHTML = `<div class="card-body" style="color: #856404; padding: 16px;"><strong>Notice:</strong> The submission deadline (${new Date(settings.submissionDeadline).toLocaleDateString()}) has passed.</div>`;
-          }
-        }
-      }
+      document.getElementById("submit-section").style.display = "block";
     }
 
     if (user.role === "admin" || user.role === "chair") {
       const bulkActions = document.getElementById("bulk-actions");
       if (bulkActions) bulkActions.style.display = "block";
     }
+
+    await loadConferences();
 
     // Fetch and store
     allPapers = await apiCall("/papers");
@@ -60,8 +83,9 @@ function filterPapers() {
   const statusFilter = document.getElementById("status-filter")?.value || "all";
 
   const filtered = allPapers.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(searchTerm) || 
-                          p.authorName.toLowerCase().includes(searchTerm);
+    const titleMatch = p.title.toLowerCase().includes(searchTerm);
+    const authorMatch = p.authorName ? p.authorName.toLowerCase().includes(searchTerm) : false;
+    const matchesSearch = titleMatch || authorMatch;
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -84,6 +108,7 @@ function displayPapers(papers) {
         <thead>
           <tr>
             <th>Title & Abstract</th>
+            <th>Conference</th>
             <th>Author</th>
             <th>Status</th>
             <th>Date</th>
@@ -94,7 +119,10 @@ function displayPapers(papers) {
   `;
 
   papers.forEach(p => {
-    const statusClass = p.status === "pending" ? "badge-pending" :
+    const statusClass = 
+      p.status === "submitted" ? "badge-pending" :
+      p.status === "under_review" ? "badge-warning" :
+      p.status === "reviewed" ? "badge-info" :
       p.status === "accepted" ? "badge-accepted" : "badge-rejected";
 
     html += `
@@ -102,9 +130,13 @@ function displayPapers(papers) {
         <td>
           <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${escapeHtml(p.title)}</div>
           <div style="font-size: 11px; color: var(--text-muted); line-height: 1.3;">${escapeHtml(p.abstract ? p.abstract.substring(0, 80) : '')}...</div>
+          <div style="margin-top: 4px; display: flex; gap: 4px;">
+            ${(p.topics || []).map(t => `<span style="font-size: 9px; padding: 2px 4px; background: #e2e8f0; border-radius: 4px;">${escapeHtml(t)}</span>`).join('')}
+          </div>
         </td>
+        <td>${escapeHtml(p.conferenceId?.name || 'Unknown')}</td>
         <td>${escapeHtml(p.authorName || 'Anonymous')}</td>
-        <td><span class="badge ${statusClass}">${p.status.toUpperCase()}</span></td>
+        <td><span class="badge ${statusClass}">${p.status.replace('_', ' ').toUpperCase()}</span></td>
         <td>${new Date(p.createdAt).toLocaleDateString()}</td>
         <td>
           <div style="display: flex; gap: 8px;">
@@ -127,16 +159,21 @@ function displayPapers(papers) {
 async function submitPaper() {
   const title = document.getElementById("title").value;
   const abstract = document.getElementById("abstract").value;
+  const conferenceId = document.getElementById("conferenceId").value;
   const fileInput = document.getElementById("file");
+  
+  const selectedTopics = Array.from(document.querySelectorAll('input[name="topics"]:checked')).map(cb => cb.value);
 
-  if (!title || abstract.length < 50) {
-    window.Layout.showToast("Title and detailed abstract (50 chars+) required.", "error");
+  if (!title || abstract.length < 50 || !conferenceId) {
+    window.Layout.showToast("Title, conference, and detailed abstract required.", "error");
     return;
   }
 
   const formData = new FormData();
   formData.append("title", title);
   formData.append("abstract", abstract);
+  formData.append("conferenceId", conferenceId);
+  formData.append("topics", selectedTopics.join(','));
   if (fileInput.files[0]) formData.append("file", fileInput.files[0]);
 
   try {
@@ -145,7 +182,11 @@ async function submitPaper() {
     await apiCall("/papers", { method: "POST", body: formData });
     window.Layout.showToast("Paper submitted successfully", "success");
     location.reload(); 
-  } catch (err) { window.Layout.showToast(err.message, "error"); }
+  } catch (err) { 
+    window.Layout.showToast(err.message, "error"); 
+    const btn = document.getElementById("submit-btn");
+    btn.disabled = false; btn.innerText = "Submit Paper";
+  }
 }
 
 async function deletePaper(id) {

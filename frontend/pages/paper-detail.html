@@ -64,6 +64,8 @@
     function displayPaperDetail(paper, reviews) {
       const container = document.getElementById("paper-detail");
       let statusClass = "badge-pending";
+      if (paper.status === "under_review") statusClass = "badge-warning";
+      if (paper.status === "reviewed") statusClass = "badge-info";
       if (paper.status === "accepted") statusClass = "badge-accepted";
       if (paper.status === "rejected") statusClass = "badge-rejected";
       
@@ -72,14 +74,27 @@
       if (reviews && reviews.length > 0) {
         reviewsHtml += '<div style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">';
         reviews.forEach(review => {
+          const rebuttal = (paper.rebuttals || []).find(r => r.reviewerId === review.reviewerId);
           reviewsHtml += `
             <div class="review-item" style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-light);">
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-weight: 600; color: var(--primary);">${escapeHtml(review.reviewerName)}</span>
+                <span style="font-weight: 600; color: var(--primary);">${escapeHtml(review.reviewerName || 'Reviewer')}</span>
                 <span style="color: var(--primary); font-weight: 600;">${"★".repeat(review.rating)}${"☆".repeat(5-review.rating)}</span>
               </div>
               <div style="margin-bottom: 8px;">Decision: <strong style="text-transform: capitalize;">${review.decision}</strong></div>
               <p style="color: var(--text-secondary); font-style: italic; font-size: 14px;">"${escapeHtml(review.comment)}"</p>
+              
+              ${rebuttal ? `
+                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                  <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">Author's Rebuttal:</div>
+                  <p style="font-size: 13px; margin: 0;">${escapeHtml(rebuttal.content)}</p>
+                </div>
+              ` : (paper.authorId === user.id && paper.status === 'reviewed' ? `
+                <div style="margin-top: 12px;">
+                  <textarea id="rebuttal-${review.reviewerId}" class="form-input" placeholder="Your reply to this review (Optional)..." rows="2"></textarea>
+                  <button class="btn btn-sm btn-outline" style="margin-top: 8px;" onclick="submitRebuttal('${review.reviewerId}')">Submit Rebuttal</button>
+                </div>
+              ` : '')}
             </div>
           `;
         });
@@ -171,9 +186,15 @@
         <div class="paper-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px;">
           <div>
             <h1 style="margin: 0; font-size: 24px;">${escapeHtml(paper.title)}</h1>
-            <p style="color: var(--text-secondary); margin: 8px 0;">By ${escapeHtml(paper.authorName)}</p>
+            ${paper.authorName ? `<p style="color: var(--text-secondary); margin: 8px 0;">By ${escapeHtml(paper.authorName)}</p>` : ''}
+            <div style="margin-top: 8px; display: flex; gap: 8px;">
+              <span style="font-size: 12px; color: var(--text-muted);">Conference: <strong>${escapeHtml(paper.conferenceId?.name || 'Unknown')}</strong></span>
+            </div>
+            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+              ${(paper.topics || []).map(t => `<span class="badge" style="background: #e2e8f0; color: #475569; border: none;">${escapeHtml(t)}</span>`).join('')}
+            </div>
           </div>
-          <span class="badge ${statusClass}">${paper.status.toUpperCase()}</span>
+          <span class="badge ${statusClass}">${paper.status.replace('_', ' ').toUpperCase()}</span>
         </div>
         
         <div class="section-card" style="background: white; padding: 24px; border-radius: 12px; border: 1px solid var(--border-light);">
@@ -229,13 +250,24 @@
       const select = document.getElementById('reviewer-select');
       if (!select) return;
       try {
-        const reviewers = await apiCall("/papers/reviewers");
+        const reviewers = await apiCall("/papers/reviewers/list");
         reviewers.forEach(r => {
           const opt = document.createElement('option');
           opt.value = r._id; opt.innerText = r.name;
           select.appendChild(opt);
         });
       } catch (err) {}
+    }
+
+    async function submitRebuttal(reviewerId) {
+      const content = document.getElementById(`rebuttal-${reviewerId}`).value;
+      if (!content) return window.Layout.showToast("Review rebuttal required", "error");
+      
+      try {
+        await apiCall(`/papers/${getPaperId()}/rebuttal`, { method: 'PUT', body: JSON.stringify({ content, reviewerId }) });
+        window.Layout.showToast("Rebuttal submitted!", "success");
+        loadPaperDetail();
+      } catch (err) { window.Layout.showToast(err.message, "error"); }
     }
 
     async function assignReviewer() {

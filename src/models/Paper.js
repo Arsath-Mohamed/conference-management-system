@@ -6,6 +6,12 @@ const paperSchema = new mongoose.Schema({
   authorId: { type: String, required: true },
   authorName: { type: String, required: true },
   
+  // New: Link to conference
+  conferenceId: { type: mongoose.Schema.Types.ObjectId, ref: "Conference", required: true },
+  
+  // New: Topics/Categories
+  topics: [{ type: String }],
+  
   // Refactor: Array of assigned reviewers
   reviewerIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   
@@ -14,9 +20,16 @@ const paperSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["pending", "accepted", "rejected"],
-    default: "pending"
+    enum: ["submitted", "under_review", "reviewed", "accepted", "rejected"],
+    default: "submitted"
   },
+
+  // Author rebuttals to reviews
+  rebuttals: [{
+    reviewerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    content: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
 
   schedule: {
     date: { type: String, default: null },

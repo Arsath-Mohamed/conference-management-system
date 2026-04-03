@@ -42,19 +42,27 @@ function displayReviews(papers) {
   
   papers.forEach(paper => {
     const isReviewed = paper.isReviewed;
-    const statusClass = paper.status === "pending" ? "badge-pending" : 
-                        paper.status === "accepted" ? "badge-accepted" : "badge-rejected";
+    const statusClass = 
+      paper.status === "submitted" ? "badge-pending" :
+      paper.status === "under_review" ? "badge-warning" :
+      paper.status === "reviewed" ? "badge-info" :
+      paper.status === "accepted" ? "badge-accepted" : "badge-rejected";
     
     html += `
       <div class="card" id="paper-${paper._id}" style="margin-bottom: 20px;">
         <div class="card-header" style="padding-bottom: 0;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
             <h3 class="card-title" style="margin-bottom: 4px;">${escapeHtml(paper.title)}</h3>
-            <span class="badge ${statusClass}">${paper.status}</span>
+            <span class="badge ${statusClass}">${paper.status.replace('_', ' ').toUpperCase()}</span>
           </div>
         </div>
-        <div class="card-body">
-          <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">Submitted by: <strong>${escapeHtml(paper.authorName)}</strong></div>
+        <div class="card-body" style="padding-top: 12px;">
+          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+            Conference: <strong style="color: var(--text-primary);">${escapeHtml(paper.conferenceId?.name || 'TBD')}</strong>
+          </div>
+          <div style="display: flex; gap: 4px; margin-bottom: 12px;">
+            ${(paper.topics || []).map(t => `<span style="font-size: 9px; padding: 2px 4px; background: #e2e8f0; border-radius: 4px;">${escapeHtml(t)}</span>`).join('')}
+          </div>
           <p style="margin-bottom: 20px; line-height: 1.5; color: var(--text-secondary);">${escapeHtml(paper.abstract.substring(0, 200))}...</p>
           
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 16px;">

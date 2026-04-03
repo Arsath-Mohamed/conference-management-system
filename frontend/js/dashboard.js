@@ -19,11 +19,11 @@ async function loadDashboard() {
     // Calculate stats
     const total = papers.length;
     const accepted = papers.filter(p => p.status === "accepted").length;
-    const pending = papers.filter(p => p.status === "pending").length;
+    const active = papers.filter(p => ["submitted", "under_review", "reviewed"].includes(p.status)).length;
     
     document.getElementById("total-papers").innerText = total;
     document.getElementById("accepted-papers").innerText = accepted;
-    document.getElementById("pending-papers").innerText = pending;
+    document.getElementById("pending-papers").innerText = active;
     
     // Load users count (admin only)
     if (user.role === "admin") {
@@ -132,12 +132,16 @@ function displayRecentPapers(papers) {
   let html = '<div class="table-container"><table class="table"><thead><tr><th>Title</th><th>Status</th><th>Submitted</th></tr></thead><tbody>';
   
   papers.forEach(paper => {
-    const statusClass = paper.status === "pending" ? "badge-pending" : 
-                        paper.status === "accepted" ? "badge-accepted" : "badge-rejected";
+    const statusClass = 
+      paper.status === "submitted" ? "badge-pending" :
+      paper.status === "under_review" ? "badge-warning" :
+      paper.status === "reviewed" ? "badge-info" :
+      paper.status === "accepted" ? "badge-accepted" : "badge-rejected";
+
     html += `
       <tr>
         <td><strong>${escapeHtml(paper.title)}</strong><br><small class="text-muted">${escapeHtml(paper.abstract.substring(0, 60))}...</small></td>
-        <td><span class="badge ${statusClass}">${paper.status}</span></td>
+        <td><span class="badge ${statusClass}">${paper.status.replace('_', ' ').toUpperCase()}</span></td>
         <td>${new Date(paper.createdAt).toLocaleDateString()}</td>
       </tr>
     `;

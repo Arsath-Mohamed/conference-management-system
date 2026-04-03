@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Conferences - CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+      <div id="header-container"></div>
+
+      <div class="page-container">
+        <!-- Create Conference Form -->
+        <div class="card" id="create-conference-section">
+          <div class="card-header"><h3 class="card-title">Create New Conference</h3></div>
+          <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="form-group">
+                <label class="form-label">Conference Name</label>
+                <input type="text" id="conf-name" class="form-input" placeholder="e.g. AI & ML 2024">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Topics (comma separated)</label>
+                <input type="text" id="conf-topics" class="form-input" placeholder="AI, ML, Robotics, Security">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Start Date</label>
+                <input type="date" id="conf-start" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">End Date</label>
+                <input type="date" id="conf-end" class="form-input">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea id="conf-desc" class="form-textarea" rows="3" placeholder="Enter conference description..."></textarea>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-primary" onclick="createConference()">Create Conference</button>
+          </div>
+        </div>
+
+        <!-- Conferences List -->
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-header"><h3 class="card-title">All Conferences</h3></div>
+          <div class="card-body">
+            <div id="conferences-list">
+              <div style="padding: 20px; text-align: center; color: var(--text-muted);">Loading conferences...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/layout.js"></script>
+  <script src="../js/conferences.js"></script>
+</body>
+</html>

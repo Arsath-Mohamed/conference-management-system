@@ -28,14 +28,6 @@ const upload = multer({
 
 router.use(auth);
 
-// GET reviewers list
-router.get("/reviewers", async (req, res) => {
-  const reviewers = await User.find({ role: "reviewer" }).select("name email _id");
-  res.json(reviewers);
-});
-
-// ================= CORE =================
-
 // GET papers list
 router.get("/", async (req, res) => {
   try {
@@ -44,16 +36,19 @@ router.get("/", async (req, res) => {
 
     if (req.user.role === "admin" || req.user.role === "chair") {
       // Chairs see all papers + how many reviews they have
-      const rawPapers = await Paper.find().sort({ createdAt: -1 }).lean();
+      const rawPapers = await Paper.find().populate("conferenceId", "name").sort({ createdAt: -1 }).lean();
       papers = await Promise.all(rawPapers.map(async p => {
         const reviewCount = await Review.countDocuments({ paperId: p._id });
         return { ...p, reviewCount };
       }));
     } else if (req.user.role === "reviewer") {
       // Reviewers see assigned papers + if they've reviewed them
-      const rawPapers = await Paper.find({ reviewerIds: userId }).sort({ createdAt: -1 }).lean();
+      const rawPapers = await Paper.find({ reviewerIds: userId }).populate("conferenceId", "name").sort({ createdAt: -1 }).lean();
       papers = await Promise.all(rawPapers.map(async p => {
         const myReview = await Review.findOne({ paperId: p._id, reviewerId: userId });
+        // Blind Review: Hide author name in list
+        delete p.authorName;
+        delete p.authorId;
         return { 
           ...p, 
           isReviewed: !!myReview,
@@ -63,7 +58,7 @@ router.get("/", async (req, res) => {
       }));
     } else {
       // Authors see their own papers
-      papers = await Paper.find({ authorId: userId }).sort({ createdAt: -1 });
+      papers = await Paper.find({ authorId: userId }).populate("conferenceId", "name").sort({ createdAt: -1 });
     }
 
     res.json(papers);
@@ -72,10 +67,10 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET single paper details (Anonymized for Authors)
+// GET single paper details (Anonymized for Reviewers)
 router.get("/:id", async (req, res) => {
   try {
-    const paper = await Paper.findById(req.params.id);
+    const paper = await Paper.findById(req.params.id).populate("conferenceId", "name topics").lean();
     if (!paper) return res.status(404).json({ message: "Paper not found" });
 
     const reviews = await Review.find({ paperId: req.params.id }).sort({ createdAt: -1 });
@@ -89,14 +84,21 @@ router.get("/:id", async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
+    // Blind Review Logic: Hide Author details from Reviewers
+    if (isReviewer && !isPowerUser) {
+      delete paper.authorName;
+      delete paper.authorId;
+    }
+
     let resultReviews = [];
     if (isPowerUser) {
       resultReviews = reviews; // Chairs see everything
     } else if (isReviewer) {
       resultReviews = reviews.filter(r => r.reviewerId.toString() === req.user.id); // Reviewers see their own
-    } else if (isAuthor && paper.status !== "pending") {
-      // Authors see anonymized reviews ONLY after decision
+    } else if (isAuthor && paper.status !== "submitted" && paper.status !== "under_review") {
+      // Authors see anonymized reviews ONLY after status is reviewed/accepted/rejected
       resultReviews = reviews.map((r, index) => ({
+        _id: r._id,
         rating: r.rating,
         comment: r.comment,
         decision: r.decision,
@@ -114,23 +116,21 @@ router.get("/:id", async (req, res) => {
 // POST new paper submission
 router.post("/", upload.single("file"), async (req, res) => {
   try {
-    const settings = await Settings.findOne();
-    if (!settings || !settings.isConferenceAnnounced) {
-      return res.status(403).json({ message: "Conference is not announced/submissions closed." });
-    }
+    const { title, abstract, conferenceId, topics } = req.body;
     
-    if (settings.submissionDeadline && new Date() > new Date(settings.submissionDeadline)) {
-      return res.status(403).json({ message: "Submission deadline has passed." });
+    if (!conferenceId) {
+      return res.status(400).json({ message: "Conference ID is required." });
     }
 
-    const { title, abstract } = req.body;
     const paper = new Paper({
       title,
       abstract,
+      conferenceId,
+      topics: Array.isArray(topics) ? topics : (topics ? topics.split(',') : []),
       authorId: req.user.id,
       authorName: req.user.name,
       file: req.file?.filename,
-      status: "pending"
+      status: "submitted"
     });
 
     await paper.save();
@@ -173,7 +173,13 @@ router.put("/:id/final", upload.single("file"), async (req, res) => {
   }
 });
 
-// ASSIGN Expert
+// GET reviewers list
+router.get("/reviewers/list", isChair, async (req, res) => {
+  const reviewers = await User.find({ role: "reviewer" }).select("name email _id");
+  res.json(reviewers);
+});
+
+// ASSIGN Reviewer
 router.put("/:id/assign", isChair, async (req, res) => {
   const { reviewerId } = req.body;
   const reviewer = await User.findById(reviewerId);
@@ -184,6 +190,12 @@ router.put("/:id/assign", isChair, async (req, res) => {
 
   if (!paper.reviewerIds.some(id => id.toString() === reviewerId)) {
     paper.reviewerIds.push(reviewerId);
+    
+    // Update status to under_review if it was submitted
+    if (paper.status === "submitted") {
+      paper.status = "under_review";
+    }
+    
     await paper.save();
     
     // Trigger Notification
@@ -192,6 +204,8 @@ router.put("/:id/assign", isChair, async (req, res) => {
       message: `You have been assigned to review: ${paper.title}`,
       link: `/pages/paper-detail.html?id=${paper._id}`
     });
+  } else {
+    return res.status(400).json({ message: "Reviewer already assigned" });
   }
 
   res.json(paper);
@@ -235,6 +249,13 @@ router.put("/:id/review", async (req, res) => {
 
     await review.save();
     
+    // Check if ALL reviewers have submitted
+    const reviewCount = await Review.countDocuments({ paperId });
+    if (reviewCount >= paper.reviewerIds.length) {
+      paper.status = "reviewed";
+      await paper.save();
+    }
+
     // Notify Chairs
     const chairs = await User.find({ role: { $in: ["chair", "admin"] } });
     for (const chair of chairs) {
@@ -246,6 +267,38 @@ router.put("/:id/review", async (req, res) => {
     }
     
     res.json(review);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// SUBMIT REBUTTAL (Author only)
+router.put("/:id/rebuttal", async (req, res) => {
+  try {
+    const { content, reviewerId } = req.body;
+    const paper = await Paper.findById(req.params.id);
+    
+    if (!paper) return res.status(404).json({ message: "Paper not found" });
+    if (paper.authorId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Only the author can submit a rebuttal." });
+    }
+
+    paper.rebuttals.push({
+      reviewerId,
+      content,
+      createdAt: new Date()
+    });
+
+    await paper.save();
+
+    // Notify Reviewer
+    await Notification.create({
+      userId: reviewerId,
+      message: `Author has submitted a rebuttal for: ${paper.title}`,
+      link: `/pages/paper-detail.html?id=${paper._id}`
+    });
+
+    res.json({ message: "Rebuttal submitted", paper });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

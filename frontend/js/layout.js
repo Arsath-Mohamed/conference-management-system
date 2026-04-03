@@ -121,6 +121,11 @@
     if (reviewsNav) {
       reviewsNav.style.display = role === "reviewer" ? "flex" : "none";
     }
+
+    const confsNav = document.querySelector('a[href="conferences.html"]');
+    if (confsNav) {
+      confsNav.style.display = (role === "admin" || role === "chair") ? "flex" : "none";
+    }
   }
   
   function showToast(message, type = "success") {
