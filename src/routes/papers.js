@@ -6,6 +6,7 @@ const Review = require("../models/Review");
 const Notification = require("../models/Notification");
 const Settings = require("../models/Settings");
 const { auth, isChair } = require("../middleware/auth");
+const { sendEmail } = require("../utils/mailer");
 
 const router = express.Router();
 
@@ -204,6 +205,13 @@ router.put("/:id/assign", isChair, async (req, res) => {
       message: `You have been assigned to review: ${paper.title}`,
       link: `/pages/paper-detail.html?id=${paper._id}`
     });
+
+    // 🔥 Trigger Email Notification
+    await sendEmail(
+      reviewer.email,
+      `New Review Assignment: ${paper.title}`,
+      `You have been assigned to review the paper: ${paper.title}. Login to the CMS to start your review.`
+    );
   } else {
     return res.status(400).json({ message: "Reviewer already assigned" });
   }
@@ -254,6 +262,16 @@ router.put("/:id/review", async (req, res) => {
     if (reviewCount >= paper.reviewerIds.length) {
       paper.status = "reviewed";
       await paper.save();
+
+      // 🔥 Trigger Email to Author
+      const author = await User.findById(paper.authorId);
+      if (author) {
+        await sendEmail(
+          author.email,
+          `Paper Status Update: Reviewed`,
+          `Great news! All reviews for your paper "${paper.title}" have been submitted. You can now view them and submit a rebuttal if needed.`
+        );
+      }
     }
 
     // Notify Chairs
@@ -334,11 +352,21 @@ router.put("/:id/decision", isChair, async (req, res) => {
     await paper.save();
 
     // 4. Notify Author
+    const author = await User.findById(paper.authorId);
     await Notification.create({
       userId: paper.authorId,
       message: `Final decision for your paper "${paper.title}": ${decision.toUpperCase()}`,
       link: `/pages/paper-detail.html?id=${paper._id}`
     });
+
+    // 🔥 Trigger Email Notification
+    if (author) {
+      await sendEmail(
+        author.email,
+        `Final Decision: ${paper.title}`,
+        `A final decision has been made for your paper "${paper.title}". Status: ${decision.toUpperCase()}. login to the CMS for more details.`
+      );
+    }
 
     // 5. Response
     res.json({
