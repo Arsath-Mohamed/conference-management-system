@@ -27,6 +27,8 @@ app.use("/api/settings", require("./src/routes/settings"));
 app.use("/api/notifications", require("./src/routes/notifications"));
 app.use("/api/conferences", require("./src/routes/conferences"));
 app.use("/api/reviews", require("./src/routes/reviews"));
+app.use("/api/dashboard", require("./src/routes/dashboard"));
+app.use("/api/schedule", require("./src/routes/schedule"));
 
 // Updated Catch-all: ONLY for non-file navigational routes
 app.get("*", (req, res) => {

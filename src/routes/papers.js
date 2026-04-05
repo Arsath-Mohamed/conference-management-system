@@ -137,7 +137,7 @@ router.post("/", upload.single("file"), async (req, res) => {
       authorId: req.user.id,
       authorName: req.user.name,
       file: req.file?.filename,
-      status: "submitted"
+      status: "pending"
     });
 
     await paper.save();
@@ -209,10 +209,7 @@ router.put("/:id/assign", isChair, async (req, res) => {
   if (!paper.reviewerIds.some(id => id.toString() === reviewerId)) {
     paper.reviewerIds.push(reviewerId);
     
-    // Update status to under_review if it was submitted
-    if (paper.status === "submitted") {
-      paper.status = "under_review";
-    }
+    // Status remains pending until decision
     
     await paper.save();
     
@@ -274,11 +271,9 @@ router.put("/:id/review", async (req, res) => {
 
     await review.save();
     
-    // Check if ALL reviewers have submitted
+    // Status remains pending until final decision
     const reviewCount = await Review.countDocuments({ paperId });
     if (reviewCount >= paper.reviewerIds.length) {
-      paper.status = "reviewed";
-      await paper.save();
 
       // 🔥 Trigger Email to Author
       const author = await User.findById(paper.authorId);

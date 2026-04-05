@@ -14,21 +14,17 @@ async function loadDashboard() {
     const user = window.getUser();
     
     // Fetch papers using the shared apiCall function
-    const papers = await apiCall("/papers");
+    const stats = await apiCall("/dashboard");
     
-    // Calculate stats
-    const total = papers.length;
-    const accepted = papers.filter(p => p.status === "accepted").length;
-    const active = papers.filter(p => ["submitted", "under_review", "reviewed"].includes(p.status)).length;
-    
-    document.getElementById("total-papers").innerText = total;
-    document.getElementById("accepted-papers").innerText = accepted;
-    document.getElementById("pending-papers").innerText = active;
+    if (!stats) return;
+
+    document.getElementById("total-papers").innerText = stats.totalPapers || 0;
+    document.getElementById("accepted-papers").innerText = stats.accepted || 0;
+    document.getElementById("pending-papers").innerText = stats.pending || 0;
     
     // Load users count (admin only)
     if (user.role === "admin") {
-      const users = await apiCall("/users");
-      document.getElementById("total-users").innerText = users.length;
+      document.getElementById("total-users").innerText = stats.users || 0;
     } else {
       const usersCard = document.querySelector(".stat-card:last-child");
       if (usersCard) usersCard.style.display = "none";
@@ -44,7 +40,8 @@ async function loadDashboard() {
       }
     }
     
-    // Display recent papers
+    // Display recent papers. Fetch papers separately to show in the list.
+    const papers = await apiCall("/papers");
     displayRecentPapers(papers.slice(0, 5));
     
   } catch (error) {

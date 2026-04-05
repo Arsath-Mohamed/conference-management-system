@@ -20,8 +20,8 @@ const paperSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["submitted", "under_review", "reviewed", "accepted", "rejected", "revision"],
-    default: "submitted"
+    enum: ["pending", "accepted", "rejected", "revision"],
+    default: "pending"
   },
 
   // Author rebuttals to reviews

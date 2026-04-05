@@ -10,20 +10,19 @@ if (!token) {
 
 async function loadSchedule() {
   try {
-    const papers = await apiCall("/papers");
-    displaySchedule(papers);
+    const data = await apiCall("/schedule");
+    if (!data) return;
+    displaySchedule(data);
   } catch (error) {
     console.error("Load schedule error:", error);
     window.Layout.showToast("Failed to load schedule", "error");
   }
 }
 
-function displaySchedule(papers) {
+function displaySchedule(scheduledPapers) {
   const container = document.getElementById("schedule-list");
   if (!container) return;
-  
-  // Filter papers that are officially "Accepted" AND have a schedule date
-  let scheduledPapers = papers.filter(p => p.status === 'accepted' && p.schedule && p.schedule.date);
+  container.innerHTML = ""; // Clear existing
   
   if (scheduledPapers.length === 0) {
     container.innerHTML = `
@@ -54,11 +53,11 @@ function displaySchedule(papers) {
   scheduledPapers.forEach(paper => {
     html += `
       <tr>
-        <td><strong>${escapeHtml(paper.title)}</strong><br><small class="text-muted">${escapeHtml(paper.abstract.substring(0, 60))}...</small></td>
+        <td><strong>${escapeHtml(paper.paperTitle)}</strong></td>
         <td>${escapeHtml(paper.authorName)}</td>
-        <td>${paper.schedule.date || "TBD"}</td>
-        <td>${paper.schedule.time || "TBD"}</td>
-        <td>${paper.schedule.room || "TBD"}</td>
+        <td>${paper.date || "TBD"}</td>
+        <td>${paper.time || "TBD"}</td>
+        <td>${paper.room || "TBD"}</td>
       </tr>
     `;
   });
