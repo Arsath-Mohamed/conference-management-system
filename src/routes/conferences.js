@@ -42,9 +42,9 @@ router.post("/", isChair, async (req, res) => {
       endDate
     });
     await conference.save();
-    res.status(201).json(conference);
+    res.status(201).json({ success: true, data: conference });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

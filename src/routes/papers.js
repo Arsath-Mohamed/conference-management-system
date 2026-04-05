@@ -27,8 +27,12 @@ const upload = multer({
   }
 });
 
+// Applying auth to all paper routes
+router.use(auth);
+
 router.use((req, res, next) => {
-  console.log(`[API] ${req.method} ${req.originalUrl} | User: ${req.user.name} (${req.user.role})`);
+  // Safe logging with optional chaining
+  console.log(`[API] ${req.method} ${req.originalUrl} | User: ${req.user?.name || 'Unknown'} (${req.user?.role || 'None'})`);
   next();
 });
 
