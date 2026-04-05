@@ -27,7 +27,10 @@ const upload = multer({
   }
 });
 
-router.use(auth);
+router.use((req, res, next) => {
+  console.log(`[API] ${req.method} ${req.originalUrl} | User: ${req.user.name} (${req.user.role})`);
+  next();
+});
 
 // GET papers list
 router.get("/", async (req, res) => {
@@ -135,6 +138,17 @@ router.post("/", upload.single("file"), async (req, res) => {
     });
 
     await paper.save();
+    
+    // 🔥 Trigger Email to Author on Submission
+    const author = await User.findById(req.user.id);
+    if (author) {
+      await sendEmail(
+        author.email,
+        `Paper Submission Received: ${title}`,
+        `Your paper "${title}" has been successfully submitted to the Conference Management System. Our experts will review it soon.`
+      );
+    }
+
     res.json(paper);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -346,26 +360,32 @@ router.put("/:id/decision", isChair, async (req, res) => {
 
     // 3. Update Paper
     paper.status = decision;
-    paper.conclusion = `Average Rating: ${avgRating}. Verdicts: ${summary.accept} Accept, ${summary.reject} Reject.`;
+    const verdictLabel = decision.toUpperCase();
+    paper.conclusion = `Average Rating: ${avgRating}. Verdicts: ${summary.accept} Accept, ${summary.reject} Reject, ${summary.revisions} Revision.`;
     paper.decidedAt = new Date();
 
+    console.log(`[STATUS] Paper: ${paper.title} | New Status: ${decision}`);
     await paper.save();
 
     // 4. Notify Author
     const author = await User.findById(paper.authorId);
     await Notification.create({
       userId: paper.authorId,
-      message: `Final decision for your paper "${paper.title}": ${decision.toUpperCase()}`,
+      message: `Final decision for your paper "${paper.title}": ${verdictLabel}`,
       link: `/pages/paper-detail.html?id=${paper._id}`
     });
 
     // 🔥 Trigger Email Notification
     if (author) {
-      await sendEmail(
-        author.email,
-        `Final Decision: ${paper.title}`,
-        `A final decision has been made for your paper "${paper.title}". Status: ${decision.toUpperCase()}. login to the CMS for more details.`
-      );
+      let emailSubject = `Final Decision: ${paper.title}`;
+      let emailText = `A final decision has been made for your paper "${paper.title}". Status: ${verdictLabel}. Please login to the CMS for more details.`;
+
+      if (decision === "revision") {
+        emailSubject = `Revision Requested: ${paper.title}`;
+        emailText = `The reviewers have requested revisions for your paper "${paper.title}". Please review the feedback and submit your updated manuscript soon.`;
+      }
+
+      await sendEmail(author.email, emailSubject, emailText);
     }
 
     // 5. Response

@@ -37,7 +37,7 @@ async function loadConferences() {
           </td>
           <td>
             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-              ${(c.topics || []).map(t => `<span style="font-size: 9px; padding: 2px 4px; background: #e2e8f0; border-radius: 4px;">${escapeHtml(t)}</span>`).join('')}
+              ${(c.topics || []).map(t => `<span class="topic-tag">${escapeHtml(t)}</span>`).join('')}
             </div>
           </td>
           <td><span class="badge ${c.status === 'open' ? 'badge-accepted' : 'badge-pending'}">${c.status.toUpperCase()}</span></td>

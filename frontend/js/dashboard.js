@@ -136,7 +136,8 @@ function displayRecentPapers(papers) {
       paper.status === "submitted" ? "badge-pending" :
       paper.status === "under_review" ? "badge-warning" :
       paper.status === "reviewed" ? "badge-info" :
-      paper.status === "accepted" ? "badge-accepted" : "badge-rejected";
+      paper.status === "accepted" ? "badge-accepted" : 
+      paper.status === "revision" ? "badge-revision" : "badge-rejected";
 
     html += `
       <tr>

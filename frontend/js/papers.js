@@ -123,15 +123,16 @@ function displayPapers(papers) {
       p.status === "submitted" ? "badge-pending" :
       p.status === "under_review" ? "badge-warning" :
       p.status === "reviewed" ? "badge-info" :
-      p.status === "accepted" ? "badge-accepted" : "badge-rejected";
+      p.status === "accepted" ? "badge-accepted" : 
+      p.status === "revision" ? "badge-revision" : "badge-rejected";
 
     html += `
       <tr>
         <td>
           <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${escapeHtml(p.title)}</div>
           <div style="font-size: 11px; color: var(--text-muted); line-height: 1.3;">${escapeHtml(p.abstract ? p.abstract.substring(0, 80) : '')}...</div>
-          <div style="margin-top: 4px; display: flex; gap: 4px;">
-            ${(p.topics || []).map(t => `<span style="font-size: 9px; padding: 2px 4px; background: #e2e8f0; border-radius: 4px;">${escapeHtml(t)}</span>`).join('')}
+          <div style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px;">
+            ${(p.topics || []).map(t => `<span class="topic-tag">${escapeHtml(t)}</span>`).join('')}
           </div>
         </td>
         <td>${escapeHtml(p.conferenceId?.name || 'Unknown')}</td>

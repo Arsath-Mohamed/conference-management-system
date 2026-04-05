@@ -68,11 +68,13 @@
       if (paper.status === "reviewed") statusClass = "badge-info";
       if (paper.status === "accepted") statusClass = "badge-accepted";
       if (paper.status === "rejected") statusClass = "badge-rejected";
+      if (paper.status === "revision") statusClass = "badge-revision";
       
       // 1. Peer Reviews Section
       let reviewsHtml = '<h4 style="margin-top: 32px; border-top: 1px solid var(--border-light); padding-top: 24px;">Peer Review Verdicts</h4>';
       if (reviews && reviews.length > 0) {
-        reviewsHtml += '<div style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">';
+        reviewsHtml += `<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Displaying ${reviews.length} feedback(s) from assigned experts.</p>`;
+        reviewsHtml += '<div style="display: flex; flex-direction: column; gap: 16px;">';
         reviews.forEach(review => {
           const rebuttal = (paper.rebuttals || []).find(r => r.reviewerId === review.reviewerId);
           reviewsHtml += `
@@ -81,15 +83,15 @@
                 <span style="font-weight: 600; color: var(--primary);">${escapeHtml(review.reviewerName || 'Reviewer')}</span>
                 <span style="color: var(--primary); font-weight: 600;">${"★".repeat(review.rating)}${"☆".repeat(5-review.rating)}</span>
               </div>
-              <div style="margin-bottom: 8px;">Decision: <strong style="text-transform: capitalize;">${review.decision}</strong></div>
-              <p style="color: var(--text-secondary); font-style: italic; font-size: 14px;">"${escapeHtml(review.comment)}"</p>
+              <div style="margin-bottom: 8px; font-size: 13px;">Recommendation: <strong style="text-transform: capitalize; color: var(--text-primary);">${review.decision}</strong></div>
+              <p style="color: var(--text-secondary); font-style: italic; font-size: 14px; line-height: 1.5;">"${escapeHtml(review.comment)}"</p>
               
               ${rebuttal ? `
-                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px;">
-                  <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">Author's Rebuttal:</div>
-                  <p style="font-size: 13px; margin: 0;">${escapeHtml(rebuttal.content)}</p>
+                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; border-left: 3px solid var(--primary);">
+                  <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; color: var(--primary);">Author's Rebuttal:</div>
+                  <p style="font-size: 13px; margin: 0; color: var(--text-primary);">${escapeHtml(rebuttal.content)}</p>
                 </div>
-              ` : (paper.authorId === user.id && paper.status === 'reviewed' ? `
+              ` : (paper.authorId === user.id && (paper.status === 'reviewed' || paper.status === 'revision') ? `
                 <div style="margin-top: 12px;">
                   <textarea id="rebuttal-${review.reviewerId}" class="form-input" placeholder="Your reply to this review (Optional)..." rows="2"></textarea>
                   <button class="btn btn-sm btn-outline" style="margin-top: 8px;" onclick="submitRebuttal('${review.reviewerId}')">Submit Rebuttal</button>
@@ -100,7 +102,7 @@
         });
         reviewsHtml += '</div>';
       } else {
-        reviewsHtml += '<p style="color: var(--text-muted); margin-top: 12px;">No reviews available yet.</p>';
+        reviewsHtml += '<div class="empty-state" style="padding: 20px; background: var(--bg-secondary); border-radius: 8px;"><p style="color: var(--text-muted); margin: 0;">No reviews available yet. Experts are currently processing the manuscript.</p></div>';
       }
 
       // 2. Author Actions: Camera-Ready Submission
@@ -135,10 +137,13 @@
               <div class="card" style="background: var(--bg-secondary);">
                 <div class="card-header"><h4 class="card-title">Assign Experts</h4></div>
                 <div class="card-body">
+                  <div id="assigned-reviewers" style="margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <!-- Dynamically loaded -->
+                  </div>
                   <div class="form-group">
                     <select id="reviewer-select" class="form-input"><option value="">-- Select Expert --</option></select>
                   </div>
-                  <button class="btn btn-primary btn-sm" onclick="assignReviewer()">Add Reviewer</button>
+                  <button class="btn btn-primary btn-sm" style="width: 100%;" onclick="assignReviewer()">Assign Reviewer</button>
                 </div>
               </div>
               <div class="card" style="background: var(--bg-secondary);">
@@ -146,7 +151,7 @@
                 <div class="card-body" style="display: flex; flex-wrap: wrap; gap: 12px;">
                   <button class="btn btn-success" style="flex: 1;" onclick="makeDecision('accepted')">Accept</button>
                   <button class="btn btn-danger" style="flex: 1;" onclick="makeDecision('rejected')">Reject</button>
-                  <button class="btn btn-warning" style="flex: 1; min-width: 100%;" onclick="makeDecision('revisions')">Request Revisions</button>
+                  <button class="btn btn-warning" style="flex: 1; min-width: 100%;" onclick="makeDecision('revision')">Request Revision</button>
                 </div>
               </div>
             </div>
@@ -192,7 +197,7 @@
               <span style="font-size: 12px; color: var(--text-muted);">Conference: <strong>${escapeHtml(paper.conferenceId?.name || 'Unknown')}</strong></span>
             </div>
             <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-              ${(paper.topics || []).map(t => `<span class="badge" style="background: #e2e8f0; color: #475569; border: none;">${escapeHtml(t)}</span>`).join('')}
+              ${(paper.topics || []).map(t => `<span class="topic-tag">${escapeHtml(t)}</span>`).join('')}
             </div>
           </div>
           <span class="badge ${statusClass}">${paper.status.replace('_', ' ').toUpperCase()}</span>
@@ -249,15 +254,26 @@
 
     async function loadAllReviewers() {
       const select = document.getElementById('reviewer-select');
+      const assignedContainer = document.getElementById('assigned-reviewers');
       if (!select) return;
       try {
         const reviewers = await apiCall("/papers/reviewers/list");
+        const paper = (await apiCall(`/papers/${getPaperId()}`)).paper;
+        
+        // Show already assigned
+        const assignedIds = paper.reviewerIds || [];
+        assignedContainer.innerHTML = assignedIds.length > 0 ? '' : '<small style="color: var(--text-muted)">No experts assigned yet.</small>';
+        
         reviewers.forEach(r => {
-          const opt = document.createElement('option');
-          opt.value = r._id; opt.innerText = r.name;
-          select.appendChild(opt);
+          if (assignedIds.includes(r._id)) {
+             assignedContainer.innerHTML += `<span class="badge badge-info" style="font-size: 10px;">${r.name} ✓</span>`;
+          } else {
+            const opt = document.createElement('option');
+            opt.value = r._id; opt.innerText = r.name;
+            select.appendChild(opt);
+          }
         });
-      } catch (err) {}
+      } catch (err) { console.error(err); }
     }
 
     async function submitRebuttal(reviewerId) {

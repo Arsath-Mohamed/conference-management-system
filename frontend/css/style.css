@@ -583,6 +583,12 @@ body {
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
+.badge-revision {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
 .badge-success {
   background: rgba(16, 185, 129, 0.1);
   color: #34d399;
@@ -599,6 +605,19 @@ body {
   background: rgba(59, 130, 246, 0.1);
   color: #60a5fa;
   border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Topic Tag */
+.topic-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border-light);
 }
 
 /* ================= EMPTY STATE ================= */
