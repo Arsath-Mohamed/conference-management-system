@@ -49,7 +49,7 @@ async function apiCall(endpoint, options = {}) {
     return json.data || [];
   } catch (error) {
     console.error(`[API ERROR] ${endpoint}:`, error);
-    alert("Failed to load data");
+    alert(`Failed to load data: ${error.message}`); // Show specific error
     throw error;
   }
 }

@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
     res.json({ success: true, data: stats || {} });
   } catch (error) {
     console.error(`[ERROR] Dashboard fetch failed: ${error.message}`);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

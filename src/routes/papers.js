@@ -156,9 +156,11 @@ router.post("/", upload.single("file"), async (req, res) => {
       );
     }
 
-    res.json(paper);
+    console.log(`[API] POST /papers | Title: ${title}`);
+    res.json({ success: true, data: paper });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Paper submission failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -189,16 +191,21 @@ router.put("/:id/final", upload.single("file"), async (req, res) => {
       });
     }
     
-    res.json({ message: "Final camera-ready version uploaded successfully.", paper });
+    res.json({ success: true, message: "Final camera-ready version uploaded successfully.", data: paper });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Paper final upload failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
 // GET reviewers list
 router.get("/reviewers/list", isChair, async (req, res) => {
-  const reviewers = await User.find({ role: "reviewer" }).select("name email _id");
-  res.json(reviewers);
+  try {
+    const reviewers = await User.find({ role: "reviewer" }).select("name email _id");
+    res.json({ success: true, data: reviewers || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // ASSIGN Reviewer
@@ -231,19 +238,23 @@ router.put("/:id/assign", isChair, async (req, res) => {
       `You have been assigned to review the paper: ${paper.title}. Login to the CMS to start your review.`
     );
   } else {
-    return res.status(400).json({ message: "Reviewer already assigned" });
+    return res.status(400).json({ success: false, message: "Reviewer already assigned" });
   }
 
-  res.json(paper);
+  res.json({ success: true, data: paper });
 });
 
 // SCHEDULE Presentation
 router.put("/:id/schedule", isChair, async (req, res) => {
-  const { date, time, room } = req.body;
-  const paper = await Paper.findByIdAndUpdate(req.params.id, {
-    schedule: { date, time, room }
-  }, { new: true });
-  res.json(paper);
+  try {
+    const { date, time, room } = req.body;
+    const paper = await Paper.findByIdAndUpdate(req.params.id, {
+      schedule: { date, time, room }
+    }, { new: true });
+    res.json({ success: true, data: paper });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // SUBMIT REVIEW
@@ -300,9 +311,11 @@ router.put("/:id/review", async (req, res) => {
       });
     }
     
-    res.json(review);
+    console.log(`[API] PUT /review | Paper: ${paper.title} | Reviewer: ${req.user.name}`);
+    res.json({ success: true, data: review });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Review submission failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -332,9 +345,11 @@ router.put("/:id/rebuttal", async (req, res) => {
       link: `/pages/paper-detail.html?id=${paper._id}`
     });
 
-    res.json({ message: "Rebuttal submitted", paper });
+    console.log(`[API] PUT /rebuttal | Paper: ${paper.title}`);
+    res.json({ success: true, message: "Rebuttal submitted", data: paper });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Rebuttal failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -392,12 +407,15 @@ router.put("/:id/decision", isChair, async (req, res) => {
 
     // 5. Response
     res.json({
+      success: true,
       message: "Decision finalized",
-      paper,
-      stats: {
-        averageRating: avgRating,
-        totalReviews,
-        decisionSummary: summary
+      data: {
+        paper,
+        stats: {
+          averageRating: avgRating,
+          totalReviews,
+          decisionSummary: summary
+        }
       }
     });
   } catch (error) {

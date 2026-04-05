@@ -12,9 +12,10 @@ router.get("/", async (req, res) => {
     const notifications = await Notification.find({ userId: req.user.id })
       .sort({ createdAt: -1 })
       .limit(20);
-    res.json(notifications);
+    res.json({ success: true, data: notifications || [] });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Notifications fetch failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -25,9 +26,10 @@ router.put("/:id/read", async (req, res) => {
       { _id: req.params.id, userId: req.user.id },
       { read: true }
     );
-    res.json({ message: "Read" });
+    res.json({ success: true, message: "Read" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Notification update failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -35,9 +37,10 @@ router.put("/:id/read", async (req, res) => {
 router.delete("/", async (req, res) => {
   try {
     await Notification.deleteMany({ userId: req.user.id });
-    res.json({ message: "Cleared" });
+    res.json({ success: true, message: "Cleared" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Notifications clear failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

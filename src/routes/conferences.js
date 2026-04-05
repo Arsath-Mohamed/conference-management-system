@@ -23,9 +23,10 @@ router.get("/:id", async (req, res) => {
   try {
     const conference = await Conference.findById(req.params.id);
     if (!conference) return res.status(404).json({ message: "Conference not found" });
-    res.json(conference);
+    res.json({ success: true, data: conference });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Conference fetch failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

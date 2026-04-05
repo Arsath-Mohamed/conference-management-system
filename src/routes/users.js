@@ -13,9 +13,10 @@ router.use(auth);
 router.get("/", isAdmin, async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
-    res.json(users);
+    res.json({ success: true, data: users || [] });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Users fetch failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -41,11 +42,13 @@ router.post("/", isAdmin, async (req, res) => {
     await user.save();
     
     res.status(201).json({ 
+      success: true,
       message: "User created successfully", 
-      user: { id: user._id, name: user.name, email: user.email, role: user.role } 
+      data: { id: user._id, name: user.name, email: user.email, role: user.role } 
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] User creation failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -61,12 +64,13 @@ router.put("/:id/role", isAdmin, async (req, res) => {
     ).select("-password");
     
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
     
-    res.json(user);
+    res.json({ success: true, data: user });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] User role update failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -77,12 +81,13 @@ router.delete("/:id", isAdmin, async (req, res) => {
     
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
     
-    res.json({ message: "User deleted successfully" });
+    res.json({ success: true, message: "User deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] User deletion failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -90,9 +95,10 @@ router.delete("/:id", isAdmin, async (req, res) => {
 router.get("/reviewers", auth, async (req, res) => {
   try {
     const reviewers = await User.find({ role: "reviewer" }).select("name email _id");
-    res.json(reviewers);
+    res.json({ success: true, data: reviewers || [] });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Reviewers fetch failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
