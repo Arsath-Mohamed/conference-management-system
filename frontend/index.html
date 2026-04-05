@@ -294,7 +294,8 @@
     async function checkStatus() {
       try {
         const res = await fetch(`${API_BASE_URL}/settings`);
-        const settings = await res.json();
+        const json = await res.json();
+        const settings = json.data || {};
         const badge = document.getElementById('conference-status-badge');
         
         if (settings.isConferenceAnnounced) {

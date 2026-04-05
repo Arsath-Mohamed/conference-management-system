@@ -9,13 +9,15 @@ async function login() {
       body: JSON.stringify({ email, password, roleGroup: "user" })
     });
 
-    const data = await response.json();
+    const json = await response.json();
+    console.log("LOGIN RESPONSE:", json);
 
-    if (!response.ok) {
-      alert(data.message || "Login failed");
+    if (!response.ok || !json.success) {
+      alert(json.message || "Login failed");
       return;
     }
 
+    const data = json.data;
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
     window.location.href = "pages/dashboard.html";
@@ -38,14 +40,16 @@ async function adminLogin() {
       body: JSON.stringify({ email, password, roleGroup: "admin" })
     });
 
-    const data = await response.json();
+    const json = await response.json();
+    console.log("ADMIN LOGIN RESPONSE:", json);
 
-    if (!response.ok) {
-      alert(data.message || "Login failed");
+    if (!response.ok || !json.success) {
+      alert(json.message || "Login failed");
       if (submitBtn) submitBtn.innerText = "Sign in to Dashboard";
       return;
     }
 
+    const data = json.data;
     if (data.user.role !== "admin" && data.user.role !== "chair") {
       alert("Access Denied: You are not authorized for the Admin Portal.");
       if (submitBtn) submitBtn.innerText = "Sign in to Dashboard";
@@ -80,10 +84,11 @@ async function register() {
       body: JSON.stringify({ name, email, password, role })
     });
 
-    const data = await response.json();
+    const json = await response.json();
+    console.log("REGISTER RESPONSE:", json);
 
-    if (!response.ok) {
-      alert(data.message || "Registration failed");
+    if (!response.ok || !json.success) {
+      alert(json.message || "Registration failed");
       return;
     }
 

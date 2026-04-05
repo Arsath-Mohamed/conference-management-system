@@ -11,7 +11,7 @@ router.get("/", async (req, res) => {
     settings = new Settings();
     await settings.save();
   }
-  res.json(settings);
+  res.json({ success: true, data: settings });
 });
 
 // UPDATE global settings (Chair/Admin only)
@@ -39,7 +39,7 @@ router.put("/", auth, isChair, async (req, res) => {
 
   await settings.save();
   
-  res.json(settings);
+  res.json({ success: true, data: settings });
 });
 
 module.exports = router;
