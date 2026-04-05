@@ -155,6 +155,39 @@
       // 3. Admin assignment & status
       let adminActions = '';
       if (user.role === 'admin' || user.role === 'chair') {
+
+        // Schedule card — only for accepted papers
+        const scheduleCard = paper.status === 'accepted' ? `
+          <div class="card" style="background: var(--bg-secondary); margin-top: 20px; border: 1px solid rgba(16,185,129,0.3);">
+            <div class="card-header"><h4 class="card-title">📅 Schedule Presentation</h4></div>
+            <div class="card-body">
+              ${paper.schedule?.date ? `
+                <div style="margin-bottom: 12px; padding: 10px; background: rgba(16,185,129,0.1); border-radius: 8px; font-size: 13px;">
+                  <strong style="color: #10b981;">✅ Already Scheduled:</strong>
+                  &nbsp; ${paper.schedule.date} &nbsp;|&nbsp; ${paper.schedule.time || 'TBD'} &nbsp;|&nbsp; ${paper.schedule.room || 'TBD'}
+                </div>
+              ` : '<p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">No schedule set yet. Fill in the details below.</p>'}
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label class="form-label">Date</label>
+                  <input type="date" id="sched-date" class="form-input" value="${paper.schedule?.date || ''}">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Time</label>
+                  <input type="time" id="sched-time" class="form-input" value="${paper.schedule?.time || ''}">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Room / Hall</label>
+                  <input type="text" id="sched-room" class="form-input" placeholder="e.g. Hall A" value="${paper.schedule?.room || ''}">
+                </div>
+              </div>
+              <button class="btn btn-success btn-sm" style="width: 100%; margin-top: 4px;" onclick="schedulePresentation()">
+                ${paper.schedule?.date ? '🔄 Update Schedule' : '📅 Set Schedule'}
+              </button>
+            </div>
+          </div>
+        ` : `<p style="font-size:12px;color:var(--text-muted);margin-top:12px;">💡 Schedule becomes available once the paper is <strong>Accepted</strong>.</p>`;
+
         adminActions = `
           <div class="admin-actions" style="margin-top: 40px; border-top: 2px solid var(--border-light); padding-top: 32px;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
@@ -179,6 +212,7 @@
                 </div>
               </div>
             </div>
+            ${scheduleCard}
           </div>
         `;
         setTimeout(loadAllReviewers, 100);
@@ -347,6 +381,31 @@
         }
         loadPaperDetail();
       } catch (err) { window.Layout.showToast(err.message, "error"); }
+    }
+
+    async function schedulePresentation() {
+      const date = document.getElementById('sched-date').value;
+      const time = document.getElementById('sched-time').value;
+      const room = document.getElementById('sched-room').value.trim();
+
+      if (!date || !room) {
+        return window.Layout.showToast("Date and Room are required to schedule a presentation.", "error");
+      }
+
+      try {
+        const btn = event.target;
+        btn.disabled = true; btn.innerText = "Saving...";
+        await apiCall(`/papers/${getPaperId()}/schedule`, {
+          method: 'PUT',
+          body: JSON.stringify({ date, time, room })
+        });
+        window.Layout.showToast("Presentation scheduled successfully! 📅", "success");
+        loadPaperDetail();
+      } catch (err) {
+        window.Layout.showToast(err.message, "error");
+        const btn = document.querySelector('[onclick="schedulePresentation()"]');
+        if (btn) { btn.disabled = false; btn.innerText = "📅 Set Schedule"; }
+      }
     }
 
     function escapeHtml(str) {
