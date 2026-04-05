@@ -75,7 +75,7 @@
       
       // 1. Peer Reviews Section
       const isAuthor = String(paper.authorId) === String(user.id);
-      const canRebuttal = isAuthor && (paper.status === 'reviewed' || paper.status === 'revision' || paper.status === 'accepted' || paper.status === 'rejected');
+      const canRebuttal = isAuthor; // Show rebuttal form whenever author views paper with reviews
 
       let reviewsHtml = '<h4 style="margin-top: 32px; border-top: 1px solid var(--border-light); padding-top: 24px;">Peer Review Verdicts</h4>';
       if (reviews && reviews.length > 0) {
