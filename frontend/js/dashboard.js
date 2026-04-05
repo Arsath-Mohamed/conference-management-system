@@ -14,9 +14,8 @@ async function loadDashboard() {
     const user = window.getUser();
     
     // Fetch papers using the shared apiCall function
-    const stats = await apiCall("/dashboard");
-    
-    if (!stats) return;
+    const data = await apiCall("/dashboard");
+    const stats = data || { totalPapers: 0, accepted: 0, pending: 0, users: 0 };
 
     document.getElementById("total-papers").innerText = stats.totalPapers || 0;
     document.getElementById("accepted-papers").innerText = stats.accepted || 0;
@@ -41,7 +40,8 @@ async function loadDashboard() {
     }
     
     // Display recent papers. Fetch papers separately to show in the list.
-    const papers = await apiCall("/papers");
+    const rawPapers = await apiCall("/papers");
+    const papers = Array.isArray(rawPapers) ? rawPapers : [];
     displayRecentPapers(papers.slice(0, 5));
     
   } catch (error) {
@@ -139,9 +139,9 @@ function displayRecentPapers(papers) {
 
     html += `
       <tr>
-        <td><strong>${escapeHtml(paper.title)}</strong><br><small class="text-muted">${escapeHtml(paper.abstract.substring(0, 60))}...</small></td>
-        <td><span class="badge ${statusClass}">${paper.status.replace('_', ' ').toUpperCase()}</span></td>
-        <td>${new Date(paper.createdAt).toLocaleDateString()}</td>
+        <td><strong>${escapeHtml(paper.title)}</strong><br><small class="text-muted">${escapeHtml(paper.abstract?.substring(0, 60))}...</small></td>
+        <td><span class="badge ${statusClass}">${(paper.status || 'pending').replace('_', ' ').toUpperCase()}</span></td>
+        <td>${paper.createdAt ? new Date(paper.createdAt).toLocaleDateString() : 'N/A'}</td>
       </tr>
     `;
   });

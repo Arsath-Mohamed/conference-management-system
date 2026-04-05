@@ -10,9 +10,11 @@ router.use(auth);
 router.get("/", async (req, res) => {
   try {
     const conferences = await Conference.find().sort({ createdAt: -1 });
-    res.json(conferences);
+    console.log(`[API] GET /conferences | Results: ${conferences.length}`);
+    res.json({ success: true, data: conferences || [] });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Conferences fetch failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

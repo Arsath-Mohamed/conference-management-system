@@ -37,28 +37,35 @@ async function apiCall(endpoint, options = {}) {
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, mergedOptions);
+    const json = await response.json();
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Request failed" }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+    console.log("API RESPONSE:", json);
+
+    if (!response.ok || !json.success) {
+      const errorMsg = json.message || `HTTP ${response.status}`;
+      throw new Error(errorMsg);
     }
 
-    return await response.json();
+    return json.data || [];
   } catch (error) {
     console.error(`[API ERROR] ${endpoint}:`, error);
+    alert("Failed to load data");
     throw error;
   }
 }
 
-// Safe User Parsing
+// Safe User Parsing (Updated)
 function getUser() {
   try {
     const raw = localStorage.getItem("user");
-    if (!raw) return {};
-    return JSON.parse(raw) || {};
+    if (!raw) return { name: "User", role: "" };
+    const user = JSON.parse(raw) || {};
+    return {
+      ...user,
+      name: user.name || "User"
+    };
   } catch (e) {
-    console.error("User parsing failed:", e);
-    return {};
+    return { name: "User", role: "" };
   }
 }
 

@@ -68,9 +68,11 @@ router.get("/", async (req, res) => {
       papers = await Paper.find({ authorId: authorFilter }).populate("conferenceId", "name").sort({ createdAt: -1 });
     }
 
-    res.json(papers);
+    console.log(`[API] GET /papers | User: ${req.user.name} | Results: ${papers.length}`);
+    res.json({ success: true, data: papers || [] });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Papers fetch failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -114,9 +116,11 @@ router.get("/:id", async (req, res) => {
       }));
     }
 
-    res.json({ paper, reviews: resultReviews });
+    console.log(`[API] GET /papers/${req.params.id} | Found: ${!!paper}`);
+    res.json({ success: true, data: { paper, reviews: resultReviews } });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`[ERROR] Paper detail failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

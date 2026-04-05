@@ -12,7 +12,8 @@ let allConferences = [];
 
 async function loadConferences() {
   try {
-    allConferences = await apiCall("/conferences");
+    const data = await apiCall("/conferences");
+    allConferences = Array.isArray(data) ? data : [];
     const select = document.getElementById("conferenceId");
     if (!select) return;
     select.innerHTML = '<option value="">-- Select Conference --</option>'; // Clear existing
@@ -55,8 +56,10 @@ function updateConferenceTopics() {
   }
 }
 
-async function loadPapers() {
+async function initPapers() {
   try {
+    const user = window.getUser();
+    
     // Author submission guard
     if (user.role === "author") {
       document.getElementById("submit-section").style.display = "block";
@@ -70,10 +73,15 @@ async function loadPapers() {
     await loadConferences();
 
     // Fetch and store
-    allPapers = await apiCall("/papers");
-    filterPapers(); // Initial display
+    try {
+      const data = await apiCall("/papers");
+      allPapers = Array.isArray(data) ? data : [];
+      displayPapers(allPapers);
+    } catch (error) {
+      console.error("Load papers error:", error);
+    }
   } catch (error) {
-    console.error("Load papers error:", error);
+    console.error("Init papers error:", error);
     window.Layout.showToast("Failed to load dashboard", "error");
   }
 }
@@ -144,7 +152,7 @@ function displayPapers(papers) {
           <div style="display: flex; gap: 8px;">
             <a href="paper-detail.html?id=${p._id}" class="btn btn-sm btn-primary" title="Full Details">Details</a>
             ${p.file ? `<button onclick="Layout.openPdfPreview('${UPLOAD_BASE_URL}/${p.file}', '${escapeHtml(p.title)}')" class="btn btn-sm btn-secondary" title="Quick Preview">📄</button>` : ''}
-            ${(user.role === 'admin' || user.role === 'chair') ? `
+            ${(user && (user.role === 'admin' || user.role === 'chair')) ? `
               <button class="btn btn-sm btn-danger" onclick="deletePaper('${p._id}')" title="Erase Record">🗑️</button>
             ` : ''}
           </div>
