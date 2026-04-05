@@ -11,7 +11,7 @@ let currentSettings = null;
 
 async function loadDashboard() {
   try {
-    const user = JSON.parse(localStorage.getItem("user"));
+    const user = window.getUser();
     
     // Fetch papers using the shared apiCall function
     const papers = await apiCall("/papers");
@@ -117,6 +117,7 @@ async function saveConferenceSettings() {
 function displayRecentPapers(papers) {
   const container = document.getElementById("recent-activity");
   if (!container) return;
+  container.innerHTML = ""; // Clear existing
   
   if (papers.length === 0) {
     container.innerHTML = `

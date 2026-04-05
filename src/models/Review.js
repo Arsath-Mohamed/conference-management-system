@@ -21,13 +21,13 @@ const reviewSchema = new mongoose.Schema({
     max: 5,
     required: true
   },
-  comment: {
+  comments: {
     type: String,
     required: true
   },
-  decision: {
+  recommendation: {
     type: String,
-    enum: ["accept", "reject", "revisions"],
+    enum: ["accept", "reject", "revision"],
     required: true
   },
   createdAt: {

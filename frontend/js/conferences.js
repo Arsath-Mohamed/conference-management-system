@@ -1,5 +1,5 @@
 const token = localStorage.getItem("token");
-const user = JSON.parse(localStorage.getItem("user") || "{}");
+const user = window.getUser();
 
 if (!token || (user.role !== "admin" && user.role !== "chair")) {
   window.location.href = "../login.html";
@@ -7,6 +7,8 @@ if (!token || (user.role !== "admin" && user.role !== "chair")) {
 
 async function loadConferences() {
   const container = document.getElementById("conferences-list");
+  if (!container) return;
+  container.innerHTML = ""; // Clear existing
   try {
     const conferences = await apiCall("/conferences");
     if (conferences.length === 0) {

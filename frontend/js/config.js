@@ -35,15 +35,34 @@ async function apiCall(endpoint, options = {}) {
     delete mergedOptions.headers["Content-Type"];
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, mergedOptions);
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, mergedOptions);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "Request failed" }));
+      throw new Error(error.message || `HTTP ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`[API ERROR] ${endpoint}:`, error);
+    throw error;
   }
-
-  return response.json();
 }
+
+// Safe User Parsing
+function getUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return {};
+    return JSON.parse(raw) || {};
+  } catch (e) {
+    console.error("User parsing failed:", e);
+    return {};
+  }
+}
+
+window.getUser = getUser;
 
 // Global layout extensions
 window.Layout = window.Layout || {};

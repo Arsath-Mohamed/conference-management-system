@@ -61,8 +61,11 @@ router.get("/", async (req, res) => {
         };
       }));
     } else {
-      // Authors see their own papers
-      papers = await Paper.find({ authorId: userId }).populate("conferenceId", "name").sort({ createdAt: -1 });
+      // Authors see their own papers. Admin/Chair can explicitly filter if needed.
+      const authorFilter = (req.user.role === "admin" || req.user.role === "chair") 
+        ? (req.query.authorId || userId) 
+        : userId;
+      papers = await Paper.find({ authorId: authorFilter }).populate("conferenceId", "name").sort({ createdAt: -1 });
     }
 
     res.json(papers);
@@ -104,8 +107,8 @@ router.get("/:id", async (req, res) => {
       resultReviews = reviews.map((r, index) => ({
         _id: r._id,
         rating: r.rating,
-        comment: r.comment,
-        decision: r.decision,
+        comments: r.comments,
+        recommendation: r.recommendation,
         reviewerName: `Reviewer #${index + 1}`, // Anonymize
         createdAt: r.createdAt
       }));
@@ -265,8 +268,8 @@ router.put("/:id/review", async (req, res) => {
     }
 
     review.rating = reviewRating;
-    review.comment = reviewComment;
-    review.decision = reviewDecision;
+    review.comments = reviewComment || "";
+    review.recommendation = reviewDecision;
     review.createdAt = new Date();
 
     await review.save();
@@ -353,9 +356,9 @@ router.put("/:id/decision", isChair, async (req, res) => {
       : 0;
     
     const summary = {
-      accept: reviews.filter(r => r.decision === "accept").length,
-      reject: reviews.filter(r => r.decision === "reject").length,
-      revisions: reviews.filter(r => r.decision === "revisions").length
+      accept: reviews.filter(r => r.recommendation === "accept").length,
+      reject: reviews.filter(r => r.recommendation === "reject").length,
+      revision: reviews.filter(r => r.recommendation === "revision").length
     };
 
     // 3. Update Paper

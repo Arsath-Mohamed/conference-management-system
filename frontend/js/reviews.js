@@ -1,15 +1,14 @@
 // ================= REVIEWS PAGE =================
 // config.js and layout.js must be loaded before this file
 
-const token = localStorage.getItem("token");
-const user = JSON.parse(localStorage.getItem("user"));
+const user = window.getUser();
 
 if (!token) {
   window.location.href = "../login.html";
 }
 
 // Reviewer only page
-if (user.role !== "reviewer") {
+if (!user || user.role !== "reviewer") {
   window.location.href = "dashboard.html";
 }
 
@@ -26,6 +25,7 @@ async function loadReviews() {
 function displayReviews(papers) {
   const container = document.getElementById("reviews-list");
   if (!container) return;
+  container.innerHTML = ""; // Clear existing
   
   if (papers.length === 0) {
     container.innerHTML = `
@@ -46,7 +46,8 @@ function displayReviews(papers) {
       paper.status === "submitted" ? "badge-pending" :
       paper.status === "under_review" ? "badge-warning" :
       paper.status === "reviewed" ? "badge-info" :
-      paper.status === "accepted" ? "badge-accepted" : "badge-rejected";
+      paper.status === "accepted" ? "badge-accepted" : 
+      paper.status === "revision" ? "badge-revision" : "badge-rejected";
     
     html += `
       <div class="card" id="paper-${paper._id}" style="margin-bottom: 20px;">
@@ -60,8 +61,8 @@ function displayReviews(papers) {
           <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
             Conference: <strong style="color: var(--text-primary);">${escapeHtml(paper.conferenceId?.name || 'TBD')}</strong>
           </div>
-          <div style="display: flex; gap: 4px; margin-bottom: 12px;">
-            ${(paper.topics || []).map(t => `<span style="font-size: 9px; padding: 2px 4px; background: #e2e8f0; border-radius: 4px;">${escapeHtml(t)}</span>`).join('')}
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;">
+            ${(paper.topics || []).map(t => `<span class="topic-tag">${escapeHtml(t)}</span>`).join('')}
           </div>
           <p style="margin-bottom: 20px; line-height: 1.5; color: var(--text-secondary);">${escapeHtml(paper.abstract.substring(0, 200))}...</p>
           

@@ -72,8 +72,8 @@
   }
 
   function loadUserInfo() {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user) {
+    const user = window.getUser();
+    if (user && user.name) {
       document.querySelectorAll(".user-name").forEach(el => {
         el.innerText = user.name || "User";
       });
@@ -108,7 +108,7 @@
       }
     });
     
-    const user = JSON.parse(localStorage.getItem("user"));
+    const user = window.getUser();
     const role = user?.role;
     
     // Role-based visibility

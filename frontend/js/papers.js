@@ -2,7 +2,7 @@
 // Includes search, filtering, and in-app PDF preview.
 
 const token = window.localStorage.getItem("token");
-const user = JSON.parse(window.localStorage.getItem("user") || "{}");
+const user = window.getUser();
 
 if (!token) {
   window.location.href = "../login.html";
@@ -14,14 +14,14 @@ async function loadConferences() {
   try {
     allConferences = await apiCall("/conferences");
     const select = document.getElementById("conferenceId");
-    if (select) {
-      allConferences.forEach(c => {
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Select Conference --</option>'; // Clear existing
+    allConferences.forEach(c => {
         const opt = document.createElement("option");
         opt.value = c._id;
         opt.innerText = c.name;
         select.appendChild(opt);
-      });
-    }
+    });
   } catch (err) {
     console.error("Load conferences error:", err);
   }
@@ -96,6 +96,7 @@ function filterPapers() {
 function displayPapers(papers) {
   const container = document.getElementById("papers-list");
   if (!container) return;
+  container.innerHTML = ""; // Clear existing
 
   if (papers.length === 0) {
     container.innerHTML = `<div class="empty-state">No papers matching your criteria.</div>`;

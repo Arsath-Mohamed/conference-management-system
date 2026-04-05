@@ -33,7 +33,7 @@
   <script src="../js/layout.js"></script>
   <script>
     const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const user = window.getUser();
     
     if (!token) {
       window.location.href = "../login.html";
@@ -83,8 +83,8 @@
                 <span style="font-weight: 600; color: var(--primary);">${escapeHtml(review.reviewerName || 'Reviewer')}</span>
                 <span style="color: var(--primary); font-weight: 600;">${"★".repeat(review.rating)}${"☆".repeat(5-review.rating)}</span>
               </div>
-              <div style="margin-bottom: 8px; font-size: 13px;">Recommendation: <strong style="text-transform: capitalize; color: var(--text-primary);">${review.decision}</strong></div>
-              <p style="color: var(--text-secondary); font-style: italic; font-size: 14px; line-height: 1.5;">"${escapeHtml(review.comment)}"</p>
+              <div style="margin-bottom: 8px; font-size: 13px;">Recommendation: <strong style="text-transform: capitalize; color: var(--text-primary);">${review.recommendation || 'N/A'}</strong></div>
+              <p style="color: var(--text-secondary); font-style: italic; font-size: 14px; line-height: 1.5;">"${escapeHtml(review.comments || '')}"</p>
               
               ${rebuttal ? `
                 <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; border-left: 3px solid var(--primary);">
@@ -176,7 +176,7 @@
             <div class="form-group">
               <label class="form-label">Recommendation</label>
               <select id="review-decision" class="form-input">
-                <option value="accept">Accept</option><option value="revisions">Revisions</option><option value="reject">Reject</option>
+                <option value="accept">Accept</option><option value="revision">Revision</option><option value="reject">Reject</option>
               </select>
             </div>
             <div class="form-group">
