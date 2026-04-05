@@ -21,10 +21,10 @@ router.get("/", async (req, res) => {
     }));
 
     console.log(`[API] GET /schedule | Found: ${schedule.length}`);
-    res.json(schedule);
+    res.json({ success: true, data: schedule || [] });
   } catch (error) {
     console.error(`[ERROR] Schedule fetch failed: ${error.message}`);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

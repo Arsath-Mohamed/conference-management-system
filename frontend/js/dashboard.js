@@ -12,54 +12,98 @@ let currentSettings = null;
 async function loadDashboard() {
   try {
     const user = window.getUser();
-    
-    // Fetch papers using the shared apiCall function
+
+    // ---- STATS ----
     const data = await apiCall("/dashboard");
-    const stats = data || { totalPapers: 0, accepted: 0, pending: 0, users: 0 };
+    const stats = (data && !Array.isArray(data)) ? data : { totalPapers: 0, accepted: 0, pending: 0, users: 0 };
 
     document.getElementById("total-papers").innerText = stats.totalPapers || 0;
     document.getElementById("accepted-papers").innerText = stats.accepted || 0;
     document.getElementById("pending-papers").innerText = stats.pending || 0;
-    
-    // Load users count (admin only)
+
     if (user.role === "admin") {
       document.getElementById("total-users").innerText = stats.users || 0;
     } else {
       const usersCard = document.querySelector(".stat-card:last-child");
       if (usersCard) usersCard.style.display = "none";
     }
-    
-    // Load Settings if Admin or Chair
+
+    // ---- ACTIVE CONFERENCES (shown to everyone) ----
+    const rawConfs = await apiCall("/conferences");
+    const conferences = Array.isArray(rawConfs) ? rawConfs : [];
+    displayActiveConferences(conferences);
+
+    // ---- CONFERENCE SETTINGS (admin/chair only, collapsed section) ----
     if (user.role === "admin" || user.role === "chair") {
       const settingsCard = document.getElementById("conference-settings-card");
       if (settingsCard) {
         settingsCard.style.display = "block";
-        currentSettings = await apiCall("/settings");
+        const settingsData = await apiCall("/settings");
+        currentSettings = (settingsData && !Array.isArray(settingsData)) ? settingsData : {};
         updateSettingsUI();
       }
     }
-    
-    // Display recent papers. Fetch papers separately to show in the list.
+
+    // ---- RECENT PAPERS ----
     const rawPapers = await apiCall("/papers");
     const papers = Array.isArray(rawPapers) ? rawPapers : [];
     displayRecentPapers(papers.slice(0, 5));
-    
+
   } catch (error) {
     console.error("Dashboard error:", error);
-    window.Layout.showToast(error.message, "error");
   }
+}
+
+// ---- Display Active/Issued Conferences ----
+function displayActiveConferences(conferences) {
+  const container = document.getElementById("active-conferences");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (conferences.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">No conferences yet</div>
+        <div class="empty-description">Conferences will appear here once created</div>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '<div class="conf-grid">';
+  conferences.forEach(conf => {
+    const startDate = conf.startDate ? new Date(conf.startDate).toLocaleDateString() : "TBD";
+    const endDate = conf.endDate ? new Date(conf.endDate).toLocaleDateString() : "TBD";
+    const topicList = Array.isArray(conf.topics) ? conf.topics.slice(0, 3).join(", ") : (conf.topics || "General");
+
+    html += `
+      <div class="conf-card">
+        <div class="conf-card-header">
+          <h3 class="conf-card-title">${escapeHtml(conf.name)}</h3>
+          <span class="badge badge-accepted">Active</span>
+        </div>
+        <p class="conf-card-desc">${escapeHtml(conf.description || "")}</p>
+        <div class="conf-card-meta">
+          <span>📅 ${startDate} – ${endDate}</span>
+          <span>🏷️ ${escapeHtml(topicList)}</span>
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 function updateSettingsUI() {
   const btn = document.getElementById("toggle-conference-btn");
   if (!btn || !currentSettings) return;
-  
-  // Populate form
+
   if (document.getElementById("conf-name")) {
     document.getElementById("conf-name").value = currentSettings.name || "";
     document.getElementById("conf-desc").value = currentSettings.description || "";
     document.getElementById("conf-location").value = currentSettings.location || "";
-    
+
     if (currentSettings.submissionDeadline) {
       document.getElementById("conf-deadline").value = currentSettings.submissionDeadline.split('T')[0];
     }
@@ -79,12 +123,12 @@ function updateSettingsUI() {
 
 async function saveConferenceSettings() {
   if (!currentSettings) return;
-  
+
   const newState = !currentSettings.isConferenceAnnounced;
   const btn = document.getElementById("toggle-conference-btn");
   btn.disabled = true;
   btn.innerText = "Saving...";
-  
+
   const payload = {
     isConferenceAnnounced: newState,
     name: document.getElementById("conf-name")?.value || "Annual Conference",
@@ -93,19 +137,21 @@ async function saveConferenceSettings() {
     eventDate: document.getElementById("conf-eventdate")?.value ? new Date(document.getElementById("conf-eventdate").value).toISOString() : null,
     location: document.getElementById("conf-location")?.value || ""
   };
-  
+
   try {
     const updatedSettings = await apiCall("/settings", {
       method: "PUT",
       body: JSON.stringify(payload)
     });
-    currentSettings = updatedSettings;
+    currentSettings = (updatedSettings && !Array.isArray(updatedSettings)) ? updatedSettings : currentSettings;
     window.Layout.showToast(newState ? "Conference Announced successfully!" : "Conference Closed!", "success");
     updateSettingsUI();
+    // Refresh active conferences list after update
+    const rawConfs = await apiCall("/conferences");
+    displayActiveConferences(Array.isArray(rawConfs) ? rawConfs : []);
   } catch (error) {
     console.error("Settings error:", error);
-    window.Layout.showToast(error.message, "error");
-    updateSettingsUI(); // reset UI
+    updateSettingsUI();
   } finally {
     btn.disabled = false;
   }
@@ -114,8 +160,8 @@ async function saveConferenceSettings() {
 function displayRecentPapers(papers) {
   const container = document.getElementById("recent-activity");
   if (!container) return;
-  container.innerHTML = ""; // Clear existing
-  
+  container.innerHTML = "";
+
   if (papers.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
@@ -126,15 +172,15 @@ function displayRecentPapers(papers) {
     `;
     return;
   }
-  
+
   let html = '<div class="table-container"><table class="table"><thead><tr><th>Title</th><th>Status</th><th>Submitted</th></tr></thead><tbody>';
-  
+
   papers.forEach(paper => {
-    const statusClass = 
+    const statusClass =
       paper.status === "submitted" ? "badge-pending" :
       paper.status === "under_review" ? "badge-warning" :
       paper.status === "reviewed" ? "badge-info" :
-      paper.status === "accepted" ? "badge-accepted" : 
+      paper.status === "accepted" ? "badge-accepted" :
       paper.status === "revision" ? "badge-revision" : "badge-rejected";
 
     html += `
@@ -145,8 +191,8 @@ function displayRecentPapers(papers) {
       </tr>
     `;
   });
-  
-  html += '</tbody><table></div>';
+
+  html += '</tbody></table></div>';
   container.innerHTML = html;
 }
 
