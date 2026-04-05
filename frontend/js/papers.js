@@ -9,6 +9,7 @@ if (!token) {
 }
 
 let allConferences = [];
+let allPapers = [];
 
 async function loadConferences() {
   try {
@@ -146,8 +147,8 @@ function displayPapers(papers) {
         </td>
         <td>${escapeHtml(p.conferenceId?.name || 'Unknown')}</td>
         <td>${escapeHtml(p.authorName || 'Anonymous')}</td>
-        <td><span class="badge ${statusClass}">${p.status.replace('_', ' ').toUpperCase()}</span></td>
-        <td>${new Date(p.createdAt).toLocaleDateString()}</td>
+        <td><span class="badge ${statusClass}">${(p.status || 'pending').replace('_', ' ').toUpperCase()}</span></td>
+        <td>${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'N/A'}</td>
         <td>
           <div style="display: flex; gap: 8px;">
             <a href="paper-detail.html?id=${p._id}" class="btn btn-sm btn-primary" title="Full Details">Details</a>
@@ -204,7 +205,7 @@ async function deletePaper(id) {
   try {
     await apiCall(`/papers/${id}`, { method: "DELETE" });
     window.Layout.showToast("Paper removed", "success");
-    loadPapers();
+    initPapers();
   } catch (err) { window.Layout.showToast(err.message, "error"); }
 }
 
@@ -217,4 +218,4 @@ window.filterPapers = filterPapers;
 window.submitPaper = submitPaper;
 window.deletePaper = deletePaper;
 
-document.addEventListener("DOMContentLoaded", loadPapers);
+document.addEventListener("DOMContentLoaded", initPapers);

@@ -56,12 +56,13 @@
           </div>
         </div>
 
-        <!-- Conference Settings (Admin/Chair only) -->
+        <!-- Conference Settings (Admin/Chair only, collapsed by default) -->
         <div class="card" id="conference-settings-card" style="display: none; margin-bottom: 24px;">
-          <div class="card-header">
-            <h3 class="card-title">Conference Settings</h3>
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title">⚙️ Conference Settings</h3>
+            <button class="btn btn-sm" onclick="document.getElementById('conf-settings-body').style.display = document.getElementById('conf-settings-body').style.display === 'none' ? 'block' : 'none'">Toggle</button>
           </div>
-          <div class="card-body">
+          <div class="card-body" id="conf-settings-body" style="display: none;">
             <div class="form-group">
               <label class="form-label">Conference Name</label>
               <input type="text" id="conf-name" class="form-input" placeholder="e.g. ICML 2026">
