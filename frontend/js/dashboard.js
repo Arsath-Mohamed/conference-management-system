@@ -1,13 +1,6 @@
 // ================= DASHBOARD PAGE =================
-// config.js and layout.js must be loaded before this file
-
 const token = localStorage.getItem("token");
-
-if (!token) {
-  window.location.href = "../login.html";
-}
-
-let currentSettings = null;
+if (!token) window.location.href = "../login.html";
 
 async function loadDashboard() {
   try {
@@ -21,140 +14,68 @@ async function loadDashboard() {
     document.getElementById("accepted-papers").innerText = stats.accepted || 0;
     document.getElementById("pending-papers").innerText = stats.pending || 0;
 
-    if (user.role === "admin") {
+    if (user.role === "admin" || user.role === "chair") {
       document.getElementById("total-users").innerText = stats.users || 0;
     } else {
       const usersCard = document.querySelector(".stat-card:last-child");
       if (usersCard) usersCard.style.display = "none";
     }
 
-    // ---- ACTIVE CONFERENCES (shown to everyone) ----
+    // ---- ACTIVE CONFERENCES ----
     const rawConfs = await apiCall("/conferences");
     const conferences = Array.isArray(rawConfs) ? rawConfs : [];
     displayActiveConferences(conferences);
 
-    // ---- CONFERENCE SETTINGS (admin/chair only, collapsed section) ----
-    if (user.role === "admin" || user.role === "chair") {
-      const settingsCard = document.getElementById("conference-settings-card");
-      if (settingsCard) {
-        settingsCard.style.display = "block";
-        const settingsData = await apiCall("/settings");
-        currentSettings = (settingsData && !Array.isArray(settingsData)) ? settingsData : {};
-        updateSettingsUI();
-      }
-    }
-
-    // ---- RECENT PAPERS ----
+    // ---- RECENT PAPERS (last 5) ----
     const rawPapers = await apiCall("/papers");
     const papers = Array.isArray(rawPapers) ? rawPapers : [];
     displayRecentPapers(papers.slice(0, 5));
 
   } catch (error) {
-    console.error("Dashboard error:", error);
+    console.error("Dashboard load error:", error);
   }
 }
 
-// ---- Display Active/Issued Conferences ----
 function displayActiveConferences(conferences) {
   const container = document.getElementById("active-conferences");
   if (!container) return;
   container.innerHTML = "";
 
-  if (conferences.length === 0) {
+  const open = conferences.filter(c => c.status !== "finished");
+
+  if (open.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📋</div>
-        <div class="empty-title">No conferences yet</div>
-        <div class="empty-description">Conferences will appear here once created</div>
-      </div>
-    `;
+        <div class="empty-icon">🏛️</div>
+        <div class="empty-title">No active conferences</div>
+        <div class="empty-description">Go to the Conferences page to create one</div>
+      </div>`;
     return;
   }
 
   let html = '<div class="conf-grid">';
-  conferences.forEach(conf => {
-    const startDate = conf.startDate ? new Date(conf.startDate).toLocaleDateString() : "TBD";
-    const endDate = conf.endDate ? new Date(conf.endDate).toLocaleDateString() : "TBD";
-    const topicList = Array.isArray(conf.topics) ? conf.topics.slice(0, 3).join(", ") : (conf.topics || "General");
+  open.forEach(conf => {
+    const start = conf.startDate ? new Date(conf.startDate).toLocaleDateString() : "TBD";
+    const end = conf.endDate ? new Date(conf.endDate).toLocaleDateString() : "TBD";
+    const topics = (conf.topics || []).slice(0, 3).join(", ") || "General";
+    const statusColor = conf.status === "open" ? "#10b981" : "#f59e0b";
+    const statusLabel = conf.status === "open" ? "Open" : conf.status === "closed" ? "Closed" : (conf.status || "Open");
 
     html += `
       <div class="conf-card">
         <div class="conf-card-header">
           <h3 class="conf-card-title">${escapeHtml(conf.name)}</h3>
-          <span class="badge badge-accepted">Active</span>
+          <span style="font-size:11px;font-weight:600;color:${statusColor};background:${statusColor}18;border:1px solid ${statusColor}33;padding:3px 8px;border-radius:99px;">${statusLabel}</span>
         </div>
         <p class="conf-card-desc">${escapeHtml(conf.description || "")}</p>
         <div class="conf-card-meta">
-          <span>📅 ${startDate} – ${endDate}</span>
-          <span>🏷️ ${escapeHtml(topicList)}</span>
+          <span>📅 ${start} – ${end}</span>
+          <span>🏷️ ${escapeHtml(topics)}</span>
         </div>
-      </div>
-    `;
+      </div>`;
   });
   html += '</div>';
   container.innerHTML = html;
-}
-
-function updateSettingsUI() {
-  const btn = document.getElementById("toggle-conference-btn");
-  if (!btn || !currentSettings) return;
-
-  if (document.getElementById("conf-name")) {
-    document.getElementById("conf-name").value = currentSettings.name || "";
-    document.getElementById("conf-desc").value = currentSettings.description || "";
-    document.getElementById("conf-location").value = currentSettings.location || "";
-
-    if (currentSettings.submissionDeadline) {
-      document.getElementById("conf-deadline").value = currentSettings.submissionDeadline.split('T')[0];
-    }
-    if (currentSettings.eventDate) {
-      document.getElementById("conf-eventdate").value = currentSettings.eventDate.split('T')[0];
-    }
-  }
-
-  if (currentSettings.isConferenceAnnounced) {
-    btn.innerText = "Close Conference";
-    btn.className = "btn btn-danger";
-  } else {
-    btn.innerText = "Save & Announce";
-    btn.className = "btn btn-primary";
-  }
-}
-
-async function saveConferenceSettings() {
-  if (!currentSettings) return;
-
-  const newState = !currentSettings.isConferenceAnnounced;
-  const btn = document.getElementById("toggle-conference-btn");
-  btn.disabled = true;
-  btn.innerText = "Saving...";
-
-  const payload = {
-    isConferenceAnnounced: newState,
-    name: document.getElementById("conf-name")?.value || "Annual Conference",
-    description: document.getElementById("conf-desc")?.value || "",
-    submissionDeadline: document.getElementById("conf-deadline")?.value ? new Date(document.getElementById("conf-deadline").value).toISOString() : null,
-    eventDate: document.getElementById("conf-eventdate")?.value ? new Date(document.getElementById("conf-eventdate").value).toISOString() : null,
-    location: document.getElementById("conf-location")?.value || ""
-  };
-
-  try {
-    const updatedSettings = await apiCall("/settings", {
-      method: "PUT",
-      body: JSON.stringify(payload)
-    });
-    currentSettings = (updatedSettings && !Array.isArray(updatedSettings)) ? updatedSettings : currentSettings;
-    window.Layout.showToast(newState ? "Conference Announced successfully!" : "Conference Closed!", "success");
-    updateSettingsUI();
-    // Refresh active conferences list after update
-    const rawConfs = await apiCall("/conferences");
-    displayActiveConferences(Array.isArray(rawConfs) ? rawConfs : []);
-  } catch (error) {
-    console.error("Settings error:", error);
-    updateSettingsUI();
-  } finally {
-    btn.disabled = false;
-  }
 }
 
 function displayRecentPapers(papers) {
@@ -168,28 +89,28 @@ function displayRecentPapers(papers) {
         <div class="empty-icon">📭</div>
         <div class="empty-title">No papers yet</div>
         <div class="empty-description">Submit your first paper to get started</div>
-      </div>
-    `;
+      </div>`;
     return;
   }
 
-  let html = '<div class="table-container"><table class="table"><thead><tr><th>Title</th><th>Status</th><th>Submitted</th></tr></thead><tbody>';
+  let html = '<div class="table-container"><table class="table"><thead><tr><th>Title</th><th>Status</th><th>Date</th></tr></thead><tbody>';
 
   papers.forEach(paper => {
     const statusClass =
-      paper.status === "submitted" ? "badge-pending" :
-      paper.status === "under_review" ? "badge-warning" :
-      paper.status === "reviewed" ? "badge-info" :
       paper.status === "accepted" ? "badge-accepted" :
-      paper.status === "revision" ? "badge-revision" : "badge-rejected";
+      paper.status === "rejected" ? "badge-rejected" :
+      paper.status === "revision" ? "badge-revision" :
+      paper.status === "under_review" ? "badge-warning" : "badge-pending";
 
     html += `
       <tr>
-        <td><strong>${escapeHtml(paper.title)}</strong><br><small class="text-muted">${escapeHtml(paper.abstract?.substring(0, 60))}...</small></td>
+        <td>
+          <a href="paper-detail.html?id=${paper._id}" style="font-weight:600;color:var(--primary);text-decoration:none;">${escapeHtml(paper.title)}</a>
+          <div style="font-size:11px;color:var(--text-muted);">${escapeHtml((paper.abstract || '').substring(0, 60))}...</div>
+        </td>
         <td><span class="badge ${statusClass}">${(paper.status || 'pending').replace('_', ' ').toUpperCase()}</span></td>
-        <td>${paper.createdAt ? new Date(paper.createdAt).toLocaleDateString() : 'N/A'}</td>
-      </tr>
-    `;
+        <td style="font-size:12px;">${paper.createdAt ? new Date(paper.createdAt).toLocaleDateString() : 'N/A'}</td>
+      </tr>`;
   });
 
   html += '</tbody></table></div>';
@@ -198,17 +119,8 @@ function displayRecentPapers(papers) {
 
 function escapeHtml(str) {
   if (!str) return "";
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === "&") return "&amp;";
-    if (m === "<") return "&lt;";
-    if (m === ">") return "&gt;";
-    return m;
-  });
+  return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
 }
 
-// Make functions globally available
 window.loadDashboard = loadDashboard;
-window.saveConferenceSettings = saveConferenceSettings;
-
-// Auto-load when DOM is ready
 document.addEventListener("DOMContentLoaded", loadDashboard);

@@ -14,6 +14,7 @@
       <div id="header-container"></div>
 
       <div class="page-container">
+
         <!-- Stats Grid -->
         <div class="stats-grid">
           <div class="stat-card">
@@ -46,66 +47,28 @@
           </div>
         </div>
 
-        <!-- Active Conferences (visible to all) -->
+        <!-- Active Conferences -->
         <div class="card" style="margin-bottom: 24px;">
-          <div class="card-header">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
             <h3 class="card-title">🏛️ Active Conferences</h3>
+            <a href="conferences.html" class="btn btn-sm btn-primary">Manage →</a>
           </div>
           <div class="card-body">
             <div id="active-conferences"></div>
           </div>
         </div>
 
-        <!-- Conference Settings (Admin/Chair only, collapsed by default) -->
-        <div class="card" id="conference-settings-card" style="display: none; margin-bottom: 24px;">
-          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 class="card-title">⚙️ Conference Settings</h3>
-            <button class="btn btn-sm" onclick="document.getElementById('conf-settings-body').style.display = document.getElementById('conf-settings-body').style.display === 'none' ? 'block' : 'none'">Toggle</button>
-          </div>
-          <div class="card-body" id="conf-settings-body" style="display: none;">
-            <div class="form-group">
-              <label class="form-label">Conference Name</label>
-              <input type="text" id="conf-name" class="form-input" placeholder="e.g. ICML 2026">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Description</label>
-              <textarea id="conf-desc" class="form-textarea" rows="3" placeholder="Brief conference description"></textarea>
-            </div>
-            <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-              <div class="form-group" style="flex: 1;">
-                <label class="form-label">Submission Deadline</label>
-                <input type="date" id="conf-deadline" class="form-input">
-              </div>
-              <div class="form-group" style="flex: 1;">
-                <label class="form-label">Event Date</label>
-                <input type="date" id="conf-eventdate" class="form-input">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Location</label>
-              <input type="text" id="conf-location" class="form-input" placeholder="e.g. San Francisco, CA">
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border-light);">
-              <div>
-                <h4 style="margin: 0 0 4px 0;">Conference Status</h4>
-                <p class="text-muted" style="margin: 0;">Toggle whether the conference is "Announced" (Live).</p>
-              </div>
-              <div>
-                <button id="toggle-conference-btn" class="btn" onclick="window.saveConferenceSettings()">Save & Announce</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent Activity -->
+        <!-- Recent Papers -->
         <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Recent Activity</h3>
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <h3 class="card-title">📋 Recent Papers</h3>
+            <a href="papers.html" class="btn btn-sm btn-primary">View All →</a>
           </div>
           <div class="card-body">
             <div id="recent-activity"></div>
           </div>
         </div>
+
       </div>
     </main>
   </div>

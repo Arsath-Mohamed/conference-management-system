@@ -3,9 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manage Conferences - CMS</title>
+  <title>Conferences - Conference Management System</title>
   <link rel="stylesheet" href="../css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-box {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .modal-title { font-size: 20px; font-weight: 700; }
+    .btn-warning { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .btn-warning:hover { background: rgba(245,158,11,0.25); }
+    .btn-success { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .btn-success:hover { background: rgba(16,185,129,0.25); }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -14,51 +46,96 @@
       <div id="header-container"></div>
 
       <div class="page-container">
-        <!-- Create Conference Form -->
-        <div class="card" id="create-conference-section">
-          <div class="card-header"><h3 class="card-title">Create New Conference</h3></div>
+
+        <!-- Create Conference Form (Chair/Admin only) -->
+        <div class="card" id="create-conference-section" style="margin-bottom: 24px;">
+          <div class="card-header">
+            <h3 class="card-title">➕ Create New Conference</h3>
+          </div>
           <div class="card-body">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
-                <label class="form-label">Conference Name</label>
-                <input type="text" id="conf-name" class="form-input" placeholder="e.g. AI & ML 2024">
+                <label class="form-label">Conference Name *</label>
+                <input type="text" id="conf-name" class="form-input" placeholder="e.g. ICML 2026">
               </div>
               <div class="form-group">
                 <label class="form-label">Topics (comma separated)</label>
-                <input type="text" id="conf-topics" class="form-input" placeholder="AI, ML, Robotics, Security">
+                <input type="text" id="conf-topics" class="form-input" placeholder="AI, ML, Robotics">
               </div>
               <div class="form-group">
-                <label class="form-label">Start Date</label>
+                <label class="form-label">Start Date *</label>
                 <input type="date" id="conf-start" class="form-input">
               </div>
               <div class="form-group">
-                <label class="form-label">End Date</label>
+                <label class="form-label">End Date *</label>
                 <input type="date" id="conf-end" class="form-input">
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Description</label>
+              <label class="form-label">Description *</label>
               <textarea id="conf-desc" class="form-textarea" rows="3" placeholder="Enter conference description..."></textarea>
             </div>
           </div>
           <div class="card-footer">
-            <button class="btn btn-primary" onclick="createConference()">Create Conference</button>
+            <button id="create-btn" class="btn btn-primary" onclick="createConference()">Create Conference</button>
           </div>
         </div>
 
-        <!-- Conferences List -->
-        <div class="card" style="margin-top: 24px;">
-          <div class="card-header"><h3 class="card-title">All Conferences</h3></div>
+        <!-- All Conferences List -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🏛️ All Conferences</h3>
+          </div>
           <div class="card-body">
             <div id="conferences-list">
-              <div style="padding: 20px; text-align: center; color: var(--text-muted);">Loading conferences...</div>
+              <div style="padding:20px;text-align:center;color:var(--text-muted);">Loading conferences...</div>
             </div>
           </div>
         </div>
+
       </div>
     </main>
   </div>
 
+  <!-- Edit Modal -->
+  <div id="edit-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Edit Conference</h3>
+        <button class="btn btn-sm" onclick="closeEdit()">✕ Close</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Conference Name *</label>
+        <input type="text" id="edit-name" class="form-input" placeholder="e.g. ICML 2026">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="form-group">
+          <label class="form-label">Start Date</label>
+          <input type="date" id="edit-start" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date</label>
+          <input type="date" id="edit-end" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Topics (comma separated)</label>
+        <input type="text" id="edit-topics" class="form-input" placeholder="AI, ML, Robotics">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description *</label>
+        <textarea id="edit-desc" class="form-textarea" rows="3"></textarea>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px;">
+        <button class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
+        <button id="save-edit-btn" class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function logout() { localStorage.clear(); window.location.href = "../login.html"; }
+  </script>
   <script src="../js/config.js"></script>
   <script src="../js/layout.js"></script>
   <script src="../js/conferences.js"></script>

@@ -6,6 +6,17 @@
   <title>Papers - Conference Management System</title>
   <link rel="stylesheet" href="../css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center; }
+    .modal-box { background:var(--bg-primary);border:1px solid var(--border-medium);border-radius:var(--radius-xl);padding:32px;width:100%;max-width:480px; }
+    .modal-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:20px; }
+    .modal-title { font-size:18px;font-weight:700; }
+    .decision-actions { display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap; }
+    .btn-warning { background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3); }
+    .btn-warning:hover { background:rgba(245,158,11,0.25); }
+    .btn-success { background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3); }
+    .btn-success:hover { background:rgba(16,185,129,0.25); }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -14,28 +25,10 @@
       <div id="header-container"></div>
 
       <div class="page-container">
-        <!-- Conference Info Card -->
-        <div class="card" id="conference-info-card" style="display: none; margin-bottom: 24px;">
-          <div class="card-header"><h3 class="card-title" id="info-name">Conference Name</h3></div>
-          <div class="card-body">
-            <p id="info-desc" style="margin-bottom: 16px; color: var(--text-secondary);"></p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-              <div><strong>Event Date:</strong> <span id="info-date">TBD</span></div>
-              <div><strong>Location:</strong> <span id="info-loc">TBD</span></div>
-              <div><strong>Submission Deadline:</strong> <span id="info-deadline" style="color: var(--danger); font-weight: 600;">TBD</span></div>
-            </div>
-          </div>
-        </div>
-        <!-- Closed message (shown for authors when conference is closed) -->
-        <div id="closed-message" class="card" style="display: none; background: #fff3cd; border-color: #ffeeba; margin-bottom: 24px;">
-          <div class="card-body" style="color: #856404; padding: 16px;">
-            <strong>Notice:</strong> The conference has not yet been announced or submissions are currently closed. You cannot submit new papers at this time.
-          </div>
-        </div>
 
-        <!-- Submit section (shown for authors) -->
-        <div id="submit-section" class="card" style="display: none;">
-          <div class="card-header"><h3 class="card-title">Submit New Paper</h3></div>
+        <!-- Submit section (authors only) -->
+        <div id="submit-section" class="card" style="display:none;margin-bottom:24px;">
+          <div class="card-header"><h3 class="card-title">📝 Submit New Paper</h3></div>
           <div class="card-body">
             <div class="form-group">
               <label class="form-label">Paper Title</label>
@@ -49,10 +42,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Paper Topics</label>
-              <div id="topics-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
-                <!-- Topics will be dynamically loaded here -->
-              </div>
-              <div class="form-help">Select relevant topics for your submission.</div>
+              <div id="topics-container" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
             </div>
             <div class="form-group">
               <label class="form-label">Abstract</label>
@@ -69,38 +59,72 @@
           </div>
         </div>
 
-        <!-- Bulk actions (shown for admin/chair) -->
-        <div id="bulk-actions" style="display: none;">
-          <button class="btn btn-danger btn-sm" onclick="deleteAllPapers()">Delete All</button>
-          <button class="btn btn-warning btn-sm" onclick="deleteAcceptedPapers()">Delete Accepted</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteRejectedPapers()">Delete Rejected</button>
-          <button class="btn btn-success btn-sm" onclick="exportPapersCSV()">Export CSV</button>
-        </div>
-
-        <!-- Papers list search/filter -->
-        <div style="display: flex; gap: 16px; margin-bottom: 20px; align-items: center;">
-          <div style="flex: 1; position: relative;">
+        <!-- Search & Filter -->
+        <div style="display:flex;gap:16px;margin-bottom:20px;align-items:center;">
+          <div style="flex:1;position:relative;">
             <input type="text" id="paper-search" class="form-input" placeholder="Search by title or author name..." oninput="filterPapers()">
           </div>
-          <div style="width: 200px;">
+          <div style="width:200px;">
             <select id="status-filter" class="form-input" onchange="filterPapers()">
               <option value="all">All Statuses</option>
-              <option value="submitted">Submitted</option>
+              <option value="pending">Pending</option>
               <option value="under_review">Under Review</option>
-              <option value="reviewed">Reviewed</option>
+              <option value="revision">Revision</option>
               <option value="accepted">Accepted</option>
               <option value="rejected">Rejected</option>
             </select>
           </div>
         </div>
 
-        <!-- Papers list -->
+        <!-- Papers List -->
         <div class="card">
-          <div class="card-header"><h3 class="card-title">All Papers</h3></div>
+          <div class="card-header"><h3 class="card-title">📄 Papers</h3></div>
           <div class="card-body"><div id="papers-list"></div></div>
         </div>
+
       </div>
     </main>
+  </div>
+
+  <!-- Assign Reviewer Modal -->
+  <div id="assign-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">👤 Assign Reviewer</h3>
+        <button class="btn btn-sm" onclick="closeAssign()">✕</button>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Paper: <strong id="assign-paper-title" style="color:var(--text-primary);"></strong></p>
+      <div class="form-group">
+        <label class="form-label">Select Reviewer</label>
+        <select id="reviewer-select" class="form-input">
+          <option value="">-- Select Reviewer --</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
+        <button class="btn btn-secondary" onclick="closeAssign()">Cancel</button>
+        <button id="confirm-assign-btn" class="btn btn-primary" onclick="confirmAssign()">Assign Reviewer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decision Modal -->
+  <div id="decision-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">⚖️ Make Final Decision</h3>
+        <button class="btn btn-sm" onclick="closeDecision()">✕</button>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Paper: <strong id="decision-paper-title" style="color:var(--text-primary);"></strong></p>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">This decision will be sent to the author via notification and email.</p>
+      <div class="decision-actions">
+        <button id="btn-accepted" class="btn btn-success" onclick="confirmDecision('accepted')">✅ Accept</button>
+        <button id="btn-revision" class="btn btn-warning" onclick="confirmDecision('revision')">🔄 Request Revision</button>
+        <button id="btn-rejected" class="btn btn-danger" onclick="confirmDecision('rejected')">❌ Reject</button>
+      </div>
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-secondary btn-sm" onclick="closeDecision()">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <script>
